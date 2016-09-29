@@ -41,7 +41,7 @@ structure Attr =
     | RuntimeInvisibleTypeAnnotations
     | AnnotationDefault
     | MethodParameters
-    | SourceFile
+    | SourceFile of Text.t
     | SourceDebugExtension
     | LineNumberTable
     | LocalVariableTable
@@ -56,6 +56,7 @@ structure Attr =
       | Synthetic => compileSynthetic constPool
       | Deprecated => compileDeprecated constPool
       | Signature typeSignature => compileSignature constPool typeSignature
+      | SourceFile value => compileSourceFile constPool value
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
@@ -196,10 +197,24 @@ structure Attr =
         (bytes, constPool)
       end
 
+    and compileSourceFile constPool value =
+      let
+        val attributeLength = 2
+        val (attrIndex, constPool) = ConstPool.withUtf8 constPool "SourceFile"
+        val (valueIndex, constPool) = ConstPool.withUtf8 constPool value
+        val bytes = Word8Vector.concat [
+          u2 attrIndex,
+          u4 attributeLength,
+          u2 valueIndex
+        ]
+      in
+        (bytes, constPool)
+      end
+
     fun minimumVersion attr =
       case attr of
         Custom                               => (45, 3)
-      | SourceFile                           => (45, 3)
+      | SourceFile _                         => (45, 3)
       | InnerClasses                         => (45, 3)
       | ConstantValue _                      => (45, 3)
       | Code _                               => (45, 3)

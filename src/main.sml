@@ -11,7 +11,7 @@ structure Main =
       thisClass = ClassName.fromString "Main",
       superClass = ClassName.fromString "java/lang/Object",
       interfaces = [],
-      attributes = [],
+      attributes = [Attr.SourceFile "main.sml"],
       fields = [
         Field.from {
           accessFlags = [Field.Flag.PRIVATE, Field.Flag.STATIC, Field.Flag.FINAL],
