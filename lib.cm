@@ -1,0 +1,22 @@
+library (0.1.0)
+  source (-)
+is
+  $/basis.cm
+  $/smlnj-lib.cm
+
+  src/attr.sml
+  src/class.sml
+  src/class-name.sml
+  src/const-pool.sig
+  src/const-pool.sml
+  src/descriptor.sml
+  src/field.sml
+  src/instr.sml
+  src/main.sml
+  src/member.fun
+  src/method.sml
+  src/method-handle.sml
+  src/prim.sml
+  src/text.sig
+  src/text.sml
+  src/util.sml
