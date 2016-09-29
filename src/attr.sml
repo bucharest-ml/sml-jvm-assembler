@@ -32,7 +32,7 @@ structure Attr =
     | InnerClasses
     | EnclosingMethod
     | Synthetic
-    | Signature
+    | Signature of Text.t
     | RuntimeVisibleAnnotations
     | RuntimeInvisibleAnnotations
     | RuntimeVisibleParameterAnnotations
@@ -55,6 +55,7 @@ structure Attr =
       | Exceptions exceptions => compileExceptions constPool exceptions
       | Synthetic => compileSynthetic constPool
       | Deprecated => compileDeprecated constPool
+      | Signature typeSignature => compileSignature constPool typeSignature
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
@@ -181,6 +182,20 @@ structure Attr =
         (bytes, constPool)
       end
 
+    and compileSignature constPool typeSignature =
+      let
+        val attributeLength = 2
+        val (attrIndex, constPool) = ConstPool.withUtf8 constPool "Signature"
+        val (sigIndex, constPool) = ConstPool.withUtf8 constPool typeSignature
+        val bytes = Word8Vector.concat [
+          u2 attrIndex,
+          u4 attributeLength,
+          u2 sigIndex
+        ]
+      in
+        (bytes, constPool)
+      end
+
     fun minimumVersion attr =
       case attr of
         Custom                               => (45, 3)
@@ -198,7 +213,7 @@ structure Attr =
       | RuntimeVisibleParameterAnnotations   => (49, 0)
       | RuntimeInvisibleParameterAnnotations => (49, 0)
       | AnnotationDefault                    => (49, 0)
-      | Signature                            => (49, 0)
+      | Signature _                          => (49, 0)
       | RuntimeVisibleAnnotations            => (49, 0)
       | RuntimeInvisibleAnnotations          => (49, 0)
       | LocalVariableTypeTable               => (49, 0)
