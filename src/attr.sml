@@ -53,6 +53,7 @@ structure Attr =
         Code code => compileCode constPool code
       | ConstantValue value => compileConstantValue constPool value
       | Exceptions exceptions => compileExceptions constPool exceptions
+      | Synthetic => compileSynthetic constPool
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
@@ -157,6 +158,15 @@ structure Attr =
           u2 (List.length exceptions),
           exceptionBytes
         ]
+      in
+        (bytes, constPool)
+      end
+
+    and compileSynthetic constPool =
+      let
+        val attributeLength = 0
+        val (attrIndex, constPool) = ConstPool.withUtf8 constPool "Synthetic"
+        val bytes = Word8Vector.concat [u2 attrIndex, u4 attributeLength]
       in
         (bytes, constPool)
       end

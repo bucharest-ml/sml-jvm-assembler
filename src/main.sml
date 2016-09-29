@@ -54,7 +54,8 @@ structure Main =
             Attr.Exceptions [
               ClassName.fromString "java/lang/Exception",
               ClassName.fromString "java/io/IOException"
-            ]
+            ],
+            Attr.Synthetic
           ]
         }
       ]
