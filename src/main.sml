@@ -55,7 +55,8 @@ structure Main =
               ClassName.fromString "java/lang/Exception",
               ClassName.fromString "java/io/IOException"
             ],
-            Attr.Synthetic
+            Attr.Synthetic,
+            Attr.Deprecated
           ]
         }
       ]
