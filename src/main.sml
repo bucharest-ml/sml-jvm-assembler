@@ -50,7 +50,11 @@ structure Main =
                 Instr.invokevirtual (symbol "java/io/PrintStream" "println" "(Ljava/lang/String;)V"),
                 Instr.return
               ]
-            }
+            },
+            Attr.Exceptions [
+              ClassName.fromString "java/lang/Exception",
+              ClassName.fromString "java/io/IOException"
+            ]
           ]
         }
       ]

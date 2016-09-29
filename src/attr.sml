@@ -27,7 +27,7 @@ structure Attr =
         attributes : t list
       }
     | StackMapTable
-    | Exceptions
+    | Exceptions of ClassName.t list
     | BootstrapMethods
     | InnerClasses
     | EnclosingMethod
@@ -52,11 +52,18 @@ structure Attr =
       case attr of
         Code code => compileCode constPool code
       | ConstantValue value => compileConstantValue constPool value
+      | Exceptions exceptions => compileExceptions constPool exceptions
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
     and compileCode constPool { code, exceptionTable, attributes } =
       let
+        fun compileExceptions constPool exceptionTable =
+          (u2 0, constPool) (* TODO: add exceptions *)
+
+        fun compileAttributes constPool attributes =
+          (u2 0, constPool) (* TODO: add attributes *)
+
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "Code"
         val (instrBytes, constPool) = compileInstructions constPool code
         val (exceptionBytes, constPool) = compileExceptions constPool exceptionTable
@@ -112,12 +119,6 @@ structure Attr =
         (bytes, constPool)
       end
 
-    and compileExceptions constPool exceptionTable =
-      (u2 0, constPool) (* TODO: add exceptions *)
-
-    and compileAttributes constPool attributes =
-      (u2 0, constPool) (* TODO: add attributes *)
-
     and compileConstantValue constPool value =
       let
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "ConstantValue"
@@ -138,6 +139,28 @@ structure Attr =
         (bytes, constPool)
       end
 
+    and compileExceptions constPool exceptions =
+      let
+        fun fold (ex, (bytes, constPool)) =
+          let
+            val (exIndex, constPool) = ConstPool.withClass constPool ex
+          in
+            (Word8Vector.concat [bytes, u2 exIndex], constPool)
+          end
+        val seed = (vec [], constPool)
+        val (exceptionBytes, constPool) = List.foldl fold seed exceptions
+        val (attrIndex, constPool) = ConstPool.withUtf8 constPool "Exceptions"
+        val attributeLength = 2 + Word8Vector.length exceptionBytes
+        val bytes = Word8Vector.concat [
+          u2 attrIndex,
+          u4 attributeLength,
+          u2 (List.length exceptions),
+          exceptionBytes
+        ]
+      in
+        (bytes, constPool)
+      end
+
     fun minimumVersion attr =
       case attr of
         Custom                               => (45, 3)
@@ -145,7 +168,7 @@ structure Attr =
       | InnerClasses                         => (45, 3)
       | ConstantValue _                      => (45, 3)
       | Code _                               => (45, 3)
-      | Exceptions                           => (45, 3)
+      | Exceptions _                         => (45, 3)
       | Synthetic                            => (45, 3)
       | LineNumberTable                      => (45, 3)
       | LocalVariableTable                   => (45, 3)
