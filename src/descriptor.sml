@@ -28,7 +28,7 @@ structure Descriptor =
 
     fun paramsCount descriptor =
       case descriptor of
-        Raw d => 1
+        Raw d => 1 (* TODO *)
       | Field _ => raise Fail "paramsCount called on field descriptor"
       | Method { params, ... } =>
         let
@@ -46,7 +46,7 @@ structure Descriptor =
         Method { params, return = Void } => 0
       | Method _ => 1
       | Field _ => raise Fail "returnCount called on field descriptor"
-      | Raw d => 0
+      | Raw d => 0 (* TODO *)
 
     fun compile descriptor =
       let

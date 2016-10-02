@@ -28,7 +28,7 @@ structure Attr =
       }
     | StackMapTable
     | Exceptions of ClassName.t list
-    | BootstrapMethods
+    | BootstrapMethods of ConstPool.bootstrap_method list
     | InnerClasses
     | EnclosingMethod
     | Synthetic
@@ -57,6 +57,7 @@ structure Attr =
       | Deprecated => compileDeprecated constPool
       | Signature typeSignature => compileSignature constPool typeSignature
       | SourceFile value => compileSourceFile constPool value
+      | BootstrapMethods methods => compileBootstrapMethods constPool methods
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
@@ -105,7 +106,7 @@ structure Attr =
         val seed = {
           stackSize = 0,
           maxStack = 0,
-          maxLocals = 1, (* TODO: compute maxLocals *)
+          maxLocals = 10, (* TODO: compute maxLocals *)
           constPool = constPool,
           bytes = vec []
         }
@@ -211,6 +212,32 @@ structure Attr =
         (bytes, constPool)
       end
 
+    and compileBootstrapMethods constPool methods =
+      let
+        fun addMethod ({ methodRef, arguments }, bytes) =
+          let
+            val argBytes = Word8Vector.concat (List.map u2 arguments)
+          in
+            Word8Vector.concat [
+              bytes,
+              u2 methodRef,
+              u2 (List.length arguments),
+              argBytes
+            ]
+          end
+        val (attrIndex, constPool) = ConstPool.withUtf8 constPool "BootstrapMethods"
+        val methodBytes = List.foldl addMethod (vec []) methods
+        val attributeLength = 2 + Word8Vector.length methodBytes
+        val bytes = Word8Vector.concat [
+          u2 attrIndex,
+          u4 attributeLength,
+          u2 (List.length methods),
+          methodBytes
+        ]
+      in
+        (bytes, constPool)
+      end
+
     fun minimumVersion attr =
       case attr of
         Custom                               => (45, 3)
@@ -233,7 +260,7 @@ structure Attr =
       | RuntimeInvisibleAnnotations          => (49, 0)
       | LocalVariableTypeTable               => (49, 0)
       | StackMapTable                        => (50, 0)
-      | BootstrapMethods                     => (51, 0)
+      | BootstrapMethods _                   => (51, 0)
       | MethodParameters                     => (52, 0)
       | RuntimeVisibleTypeAnnotations        => (52, 0)
       | RuntimeInvisibleTypeAnnotations      => (52, 0)

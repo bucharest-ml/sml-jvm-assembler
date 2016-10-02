@@ -60,6 +60,7 @@ structure Instr =
     | bipush of Word8.word
     | sipush of int
     | ldc of index
+    | ldc_class of ClassName.t
     | ldc_string of Text.t
     | ldc_w of int
     | ldc2_w of int
@@ -249,7 +250,7 @@ structure Instr =
         name : Text.t,
         descriptor : Descriptor.t
       }
-    | invokedynamic
+    | invokedynamic of ConstPool.call_site
     | new of ClassName.t
     | newarray of ArrayType.t
     | anewarray of int
@@ -312,6 +313,13 @@ structure Instr =
       | bipush word       => (vec [0wx10, word], 1, constPool)
       | sipush short      => (Word8Vector.prepend (0wx11, u2 short), 1, constPool)
       | ldc index         => (vec [0wx12, index], 1, constPool)
+      | ldc_class class   =>
+        let
+          val (index, constPool) = ConstPool.withClass constPool class
+          val bytes = vec [0wx12, Word8.fromInt index]
+        in
+          (bytes, 1, constPool)
+        end
       | ldc_string text   =>
         let
           val (index, constPool) = ConstPool.withString constPool text
@@ -589,7 +597,13 @@ structure Instr =
         in
           (bytes, returnCount - paramsCount - 1 (* this *), constPool)
         end
-      | invokedynamic => raise Fail "not implemented"
+      | invokedynamic specifier =>
+        let
+          val (index, constPool) = ConstPool.withInvokeDynamic constPool specifier
+          val bytes = Word8Vector.concat [vec [0wxBA], u2 index, u2 0]
+        in
+          (bytes, 0, constPool)
+        end
       | new className =>
         let
           val (classIndex, constPool) = ConstPool.withClass constPool className

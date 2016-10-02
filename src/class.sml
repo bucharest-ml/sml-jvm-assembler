@@ -77,6 +77,11 @@ structure Class =
 
         val (fieldsBytes, constPool) = compileMany Field.compile constPool fields
         val (methodsBytes, constPool) = compileMany Method.compile constPool methods
+        val bootstrapMethods = ConstPool.bootstrapMethods constPool
+        val attributes =
+          if List.null bootstrapMethods
+          then attributes
+          else Attr.BootstrapMethods bootstrapMethods :: attributes
         val (attrsBytes, constPool) = compileMany Attr.compile constPool attributes
         val constPoolBytes = ConstPool.compile constPool
       in

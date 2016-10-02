@@ -5,6 +5,27 @@ structure ConstPool :> CONST_POOL =
     type bootstrap_method_attr_index = int
     type name_and_type = { name : Text.t, descriptor : Text.t }
     type symbol_ref = { class : Text.t, nameAndType : name_and_type }
+    type call_site = {
+      nameAndType : name_and_type,
+      bootstrapMethod : {
+        methodHandle : MethodHandle.t,
+        symbolRef : symbol_ref,
+        methodParams : unit list (* TODO *)
+      }
+    }
+
+    type bootstrap_method = {
+      methodRef : entry_index,
+      arguments : entry_index list
+    }
+
+    structure BootstrapMethodsMap = RedBlackMapFn(struct
+      type ord_key = bootstrap_method
+      fun compare (a : bootstrap_method, b : bootstrap_method) =
+        case Int.compare (#methodRef a, #methodRef b) of
+          EQUAL => List.collate Int.compare (#arguments a, #arguments b)
+        | other => other
+    end)
 
     datatype entry =
       Class              of entry_index
@@ -66,13 +87,27 @@ structure ConstPool :> CONST_POOL =
         | (a, b) => Int.compare (ordinal a, ordinal b)
     end)
 
-    type t = { counter : int, entries : int Map.map }
+    type t = {
+      counter : int,
+      entries : int Map.map,
+      bootstrap : {
+        counter : int,
+        entries : int BootstrapMethodsMap.map
+      }
+    }
 
-    val empty = { counter = 0, entries = Map.empty }
+    val empty = {
+      counter = 0,
+      entries = Map.empty,
+      bootstrap = {
+        counter = 0,
+        entries = BootstrapMethodsMap.empty
+      }
+    }
 
-    fun length { counter, entries } = counter
+    fun length { counter, entries, bootstrap } = counter
 
-    fun withEntry (constPool as { counter, entries }) entry =
+    fun withEntry (constPool as { counter, entries, bootstrap }) entry =
       case Map.find (entries, entry) of
         SOME entryIndex => (entryIndex, constPool)
       | NONE =>
@@ -80,7 +115,8 @@ structure ConstPool :> CONST_POOL =
             val counter = counter + 1
             val constPool = {
               counter = counter,
-              entries = Map.insert (entries, entry, counter)
+              entries = Map.insert (entries, entry, counter),
+              bootstrap = bootstrap
             }
           in
             (counter, constPool)
@@ -129,16 +165,9 @@ structure ConstPool :> CONST_POOL =
         withEntry constPool (kind (classIndex, nameTypeIndex))
       end
 
-    val withFieldref = withSymbolRef Fieldref
-    val withMethodref = withSymbolRef Methodref
-    val withInterfaceMethodref = withSymbolRef InterfaceMethodref
-
-    fun withInvokeDynamic constPool { bootstrapMethodIndex, nameAndType } =
-      let
-        val (nameTypeIndex, constPool) = withNameAndType constPool nameAndType
-      in
-        withEntry constPool (InvokeDynamic (bootstrapMethodIndex, nameTypeIndex))
-      end
+    fun withFieldref constPool = withSymbolRef Fieldref constPool
+    fun withMethodref constPool = withSymbolRef Methodref constPool
+    fun withInterfaceMethodref constPool = withSymbolRef InterfaceMethodref constPool
 
     fun withMethodHandle constPool { kind, symbolRef } =
       let
@@ -160,7 +189,56 @@ structure ConstPool :> CONST_POOL =
         withEntry constPool (MethodHandle (methodKind, refIndex))
       end
 
-    fun compile { counter, entries } =
+    fun withInvokeDynamic constPool { nameAndType, bootstrapMethod } =
+      let
+        val { methodHandle, symbolRef, methodParams } = bootstrapMethod
+
+        val (methodHandleIndex, constPool) = withMethodHandle constPool {
+          kind = methodHandle,
+          symbolRef = symbolRef
+        }
+
+        val (bootstrapMethodIndex, constPool) =
+          let
+            val { counter, entries, bootstrap = { counter = bootCounter, entries = bootEntries } } = constPool
+            val entry = { methodRef = methodHandleIndex, arguments = [] }
+          in
+            case BootstrapMethodsMap.find (bootEntries, entry) of
+              SOME entryIndex => (entryIndex, constPool)
+            | NONE =>
+                let
+                  val newEntries = BootstrapMethodsMap.insert (bootEntries, entry, bootCounter)
+                in
+                  (bootCounter, {
+                    counter = counter,
+                    entries = entries,
+                    bootstrap = {
+                      counter = bootCounter + 1,
+                      entries = newEntries
+                    }
+                  })
+                end
+          end
+
+        val (nameTypeIndex, constPool) =
+          let
+            val { name, descriptor } = nameAndType
+          in
+            withNameAndType constPool { name = name, descriptor = descriptor }
+          end
+      in
+        withEntry constPool (InvokeDynamic (bootstrapMethodIndex, nameTypeIndex))
+      end
+
+    fun bootstrapMethods { counter, entries, bootstrap } =
+      let
+        fun greater ((_, i), (_, j)) = Int.compare (i, j) = GREATER
+        val { counter, entries } = bootstrap
+      in
+        List.map #1 (ListMergeSort.sort greater (BootstrapMethodsMap.listItemsi entries))
+      end
+
+    fun compile { counter, entries, bootstrap } =
       let
         open Util
 
@@ -209,8 +287,18 @@ structure ConstPool :> CONST_POOL =
                     u2 entryIndex2
                   ]
               | InterfaceMethodref (entryIndex1, entryIndex2) => raise Fail "not implemented"
-              | InvokeDynamic (bootstrapMethodAttrIndex, entryIndex) => raise Fail "not implemented"
-              | MethodHandle (referenceKind, entryIndex) => raise Fail "not implemented"
+              | InvokeDynamic (bootstrapMethodAttrIndex, entryIndex) =>
+                  Word8Vector.concat [
+                    vec [0w18],
+                    u2 bootstrapMethodAttrIndex,
+                    u2 entryIndex
+                  ]
+              | MethodHandle (referenceKind, entryIndex) =>
+                  Word8Vector.concat [
+                    vec [0w15],
+                    vec [Word8.fromInt referenceKind],
+                    u2 entryIndex
+                  ]
           in
             Word8Vector.concat [bytes, entryBytes]
           end
