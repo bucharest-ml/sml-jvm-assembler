@@ -220,12 +220,7 @@ structure ConstPool :> CONST_POOL =
                 end
           end
 
-        val (nameTypeIndex, constPool) =
-          let
-            val { name, descriptor } = nameAndType
-          in
-            withNameAndType constPool { name = name, descriptor = descriptor }
-          end
+        val (nameTypeIndex, constPool) = withNameAndType constPool nameAndType
       in
         withEntry constPool (InvokeDynamic (bootstrapMethodIndex, nameTypeIndex))
       end
