@@ -240,28 +240,28 @@ structure Attr =
 
     fun minimumVersion attr =
       case attr of
-        Custom                               => (45, 3)
-      | SourceFile _                         => (45, 3)
-      | InnerClasses                         => (45, 3)
-      | ConstantValue _                      => (45, 3)
-      | Code _                               => (45, 3)
-      | Exceptions _                         => (45, 3)
-      | Synthetic                            => (45, 3)
-      | LineNumberTable                      => (45, 3)
-      | LocalVariableTable                   => (45, 3)
-      | Deprecated                           => (45, 3)
-      | EnclosingMethod                      => (49, 0)
-      | SourceDebugExtension                 => (49, 0)
-      | RuntimeVisibleParameterAnnotations   => (49, 0)
-      | RuntimeInvisibleParameterAnnotations => (49, 0)
-      | AnnotationDefault                    => (49, 0)
-      | Signature _                          => (49, 0)
-      | RuntimeVisibleAnnotations            => (49, 0)
-      | RuntimeInvisibleAnnotations          => (49, 0)
-      | LocalVariableTypeTable               => (49, 0)
-      | StackMapTable                        => (50, 0)
-      | BootstrapMethods _                   => (51, 0)
-      | MethodParameters                     => (52, 0)
-      | RuntimeVisibleTypeAnnotations        => (52, 0)
-      | RuntimeInvisibleTypeAnnotations      => (52, 0)
+        Custom                               => { major = 45, minor = 3 }
+      | SourceFile _                         => { major = 45, minor = 3 }
+      | InnerClasses                         => { major = 45, minor = 3 }
+      | ConstantValue _                      => { major = 45, minor = 3 }
+      | Code _                               => { major = 45, minor = 3 }
+      | Exceptions _                         => { major = 45, minor = 3 }
+      | Synthetic                            => { major = 45, minor = 3 }
+      | LineNumberTable                      => { major = 45, minor = 3 }
+      | LocalVariableTable                   => { major = 45, minor = 3 }
+      | Deprecated                           => { major = 45, minor = 3 }
+      | EnclosingMethod                      => { major = 49, minor = 0 }
+      | SourceDebugExtension                 => { major = 49, minor = 0 }
+      | RuntimeVisibleParameterAnnotations   => { major = 49, minor = 0 }
+      | RuntimeInvisibleParameterAnnotations => { major = 49, minor = 0 }
+      | AnnotationDefault                    => { major = 49, minor = 0 }
+      | Signature _                          => { major = 49, minor = 0 }
+      | RuntimeVisibleAnnotations            => { major = 49, minor = 0 }
+      | RuntimeInvisibleAnnotations          => { major = 49, minor = 0 }
+      | LocalVariableTypeTable               => { major = 49, minor = 0 }
+      | StackMapTable                        => { major = 50, minor = 0 }
+      | BootstrapMethods _                   => { major = 51, minor = 0 }
+      | MethodParameters                     => { major = 52, minor = 0 }
+      | RuntimeVisibleTypeAnnotations        => { major = 52, minor = 0 }
+      | RuntimeInvisibleTypeAnnotations      => { major = 52, minor = 0 }
   end
