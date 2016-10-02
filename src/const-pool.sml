@@ -206,18 +206,18 @@ structure ConstPool :> CONST_POOL =
             case BootstrapMethodsMap.find (bootEntries, entry) of
               SOME entryIndex => (entryIndex, constPool)
             | NONE =>
-                let
-                  val newEntries = BootstrapMethodsMap.insert (bootEntries, entry, bootCounter)
-                in
-                  (bootCounter, {
-                    counter = counter,
-                    entries = entries,
-                    bootstrap = {
-                      counter = bootCounter + 1,
-                      entries = newEntries
-                    }
-                  })
-                end
+              let
+                val newEntries = BootstrapMethodsMap.insert (bootEntries, entry, bootCounter)
+              in
+                (bootCounter, {
+                  counter = counter,
+                  entries = entries,
+                  bootstrap = {
+                    counter = bootCounter + 1,
+                    entries = newEntries
+                  }
+                })
+              end
           end
 
         val (nameTypeIndex, constPool) = withNameAndType constPool nameAndType
