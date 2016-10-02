@@ -12,7 +12,7 @@ structure Class =
         | ANNOTATION
         | ENUM
 
-        fun compile flag : Word32.word =
+        fun compile flag : Word.word =
           case flag of
             PUBLIC     => 0wx0001
           | FINAL      => 0wx0010
@@ -25,7 +25,7 @@ structure Class =
 
         fun mask flags =
           let
-            fun mask (flag, acc) = Word32.orb (acc, compile flag)
+            fun mask (flag, acc) = Word.orb (acc, compile flag)
           in
             List.foldl mask 0wx0 flags
           end
@@ -91,7 +91,7 @@ structure Class =
           majorVersion,
           u2 (1 + ConstPool.length constPool),
           constPoolBytes,
-          u2 (Word32.toInt (Flag.mask accessFlags)),
+          u2 (Word.toInt (Flag.mask accessFlags)),
           u2 thisClassIndex,
           u2 superClassIndex,
           u2 (List.length interfaces),
