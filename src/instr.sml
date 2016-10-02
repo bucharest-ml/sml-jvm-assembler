@@ -1,44 +1,44 @@
+structure Const =
+  struct
+    datatype t =
+      Integer of Integer.t
+    | Float of Float.t
+    | String of Text.t
+    | Class of ClassName.t
+    | MethodType
+    | MethodHandle
+  end
+
+structure ArrayType =
+  struct
+    datatype t =
+      BOOLEAN
+    | CHAR
+    | FLOAT
+    | DOUBLE
+    | BYTE
+    | SHORT
+    | INT
+    | LONG
+
+    fun compile t : Word8.word =
+      case t of
+        BOOLEAN => 0w4
+      | CHAR => 0w5
+      | FLOAT => 0w6
+      | DOUBLE => 0w7
+      | BYTE => 0w8
+      | SHORT => 0w9
+      | INT => 0w10
+      | LONG => 0w11
+  end
+
 structure Instr =
   struct
     open Util
 
     type offset = int
     type index = Word8.word
-
-    structure Const =
-      struct
-        datatype t =
-          String of Text.t
-        | Integer of Integer.t
-        | Float of Integer.t
-        | Class of ClassName.t
-        | Methodref
-        | MethodHandle
-      end
-
-    structure ArrayType =
-      struct
-        datatype t =
-          BOOLEAN
-        | CHAR
-        | FLOAT
-        | DOUBLE
-        | BYTE
-        | SHORT
-        | INT
-        | LONG
-
-        fun compile t : Word8.word =
-          case t of
-            BOOLEAN => 0w4
-          | CHAR => 0w5
-          | FLOAT => 0w6
-          | DOUBLE => 0w7
-          | BYTE => 0w8
-          | SHORT => 0w9
-          | INT => 0w10
-          | LONG => 0w11
-      end
 
     datatype t =
       nop (* Constants *)
@@ -59,9 +59,7 @@ structure Instr =
     | dconst_1
     | bipush of Word8.word
     | sipush of int
-    | ldc of index
-    | ldc_class of ClassName.t
-    | ldc_string of Text.t
+    | ldc of Const.t
     | ldc_w of int
     | ldc2_w of int
     | iload of index (* Loads *)
@@ -312,20 +310,18 @@ structure Instr =
       | dconst_1          => (vec [0wxF], 2, constPool)
       | bipush word       => (vec [0wx10, word], 1, constPool)
       | sipush short      => (Word8Vector.prepend (0wx11, u2 short), 1, constPool)
-      | ldc index         => (vec [0wx12, index], 1, constPool)
-      | ldc_class class   =>
+      | ldc const =>
         let
-          val (index, constPool) = ConstPool.withClass constPool class
-          val bytes = vec [0wx12, Word8.fromInt index]
+          val (index, constPool) =
+            case const of
+              Const.Integer value => ConstPool.withInteger constPool value
+            | Const.Float value => ConstPool.withFloat constPool value
+            | Const.String value => ConstPool.withString constPool value
+            | Const.Class value => ConstPool.withClass constPool value
+            | Const.MethodType => raise Fail "not implemented"
+            | Const.MethodHandle => raise Fail "not implemented"
         in
-          (bytes, 1, constPool)
-        end
-      | ldc_string text   =>
-        let
-          val (index, constPool) = ConstPool.withString constPool text
-          val bytes = vec [0wx12, Word8.fromInt index]
-        in
-          (bytes, 1, constPool)
+          (vec [0wx12, Word8.fromInt index], 1, constPool)
         end
       | ldc_w index       => (Word8Vector.prepend (0wx13, u2 index), 1, constPool)
       | ldc2_w index      => (Word8Vector.prepend (0wx14, u2 index), 2, constPool)

@@ -37,7 +37,7 @@ structure Main =
               exceptionTable = [],
               attributes = [],
               code = [
-                Instr.ldc_string "Hello, InvokeDynamic!",
+                Instr.ldc (Const.String "Hello, InvokeDynamic!"),
                 Instr.invokedynamic {
                   nameAndType = {
                     name = "print",
@@ -62,7 +62,7 @@ structure Main =
                 },
                 (* Instr.getstatic (symbol "java/lang/System" "out" "Ljava/io/PrintStream;"), *)
                 (* Instr.getstatic (symbol "Main" "message" "Ljava/lang/String;"), *)
-                (* Instr.ldc_string "Hello, World!", *)
+                (* Instr.ldc (Const.String "Hello, World!"), *)
                 (* Instr.iconst_1,
                 Instr.iconst_5,
                 Instr.iadd,
@@ -124,7 +124,7 @@ structure Main =
                 Instr.new (ClassName.fromString "java/lang/invoke/ConstantCallSite"),
                 Instr.dup,
                 Instr.aload_0,
-                Instr.ldc_class (ClassName.fromString "Main"),
+                Instr.ldc (Const.Class (ClassName.fromString "Main")),
                 Instr.aload_1,
                 Instr.aload_2,
                 Instr.invokevirtual {

@@ -17,7 +17,7 @@ functor Member(Flag : sig type t val compile : t -> Word.word end) =
           let
             fun mask (flag, acc) = Word.orb (acc, Flag.compile flag)
           in
-            List.foldl mask 0wx0 flags
+            List.foldl mask 0w0 flags
           end
 
         fun compileAttrs (attr, (bytes, constPool)) =
