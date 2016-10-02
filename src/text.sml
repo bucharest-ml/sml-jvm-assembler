@@ -3,4 +3,6 @@ structure Text : TEXT =
     open String
 
     type t = string
+
+    fun compile string = Byte.stringToBytes string
   end

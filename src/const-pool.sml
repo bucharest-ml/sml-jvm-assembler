@@ -250,7 +250,7 @@ structure ConstPool :> CONST_POOL =
               | String entryIndex => Word8Vector.concat [vec [0wx8], u2 entryIndex]
               | Utf8 value =>
                 let
-                  val bytes = Byte.stringToBytes value
+                  val bytes = Text.compile value
                 in
                   Word8Vector.concat [
                     vec [0w1],
