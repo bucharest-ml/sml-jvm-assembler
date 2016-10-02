@@ -3,7 +3,7 @@ structure ConstPool :> CONST_POOL =
     type entry_index = int
     type reference_kind = int
     type bootstrap_method_attr_index = int
-    type name_and_type = { name : Text.t, descriptor : Text.t }
+    type name_and_type = { name : Text.t, descriptor : Descriptor.t }
     type symbol_ref = { class : Text.t, nameAndType : name_and_type }
     type call_site = {
       nameAndType : name_and_type,
@@ -152,7 +152,7 @@ structure ConstPool :> CONST_POOL =
     fun withNameAndType constPool { name, descriptor } =
       let
         val (nameIndex, constPool) = withUtf8 constPool name
-        val (descIndex, constPool) = withUtf8 constPool descriptor
+        val (descIndex, constPool) = withUtf8 constPool (Descriptor.compile descriptor)
       in
         withEntry constPool (NameAndType (nameIndex, descIndex))
       end

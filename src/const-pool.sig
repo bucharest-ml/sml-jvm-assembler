@@ -4,7 +4,7 @@ signature CONST_POOL =
 
     (* Aliases for readability. *)
     type entry_index = int
-    type name_and_type = { name : Text.t, descriptor : Text.t }
+    type name_and_type = { name : Text.t, descriptor : Descriptor.t }
     type symbol_ref = { class : Text.t, nameAndType : name_and_type }
     type call_site = {
       nameAndType : name_and_type,

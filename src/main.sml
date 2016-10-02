@@ -41,12 +41,12 @@ structure Main =
                 Instr.invokedynamic {
                   nameAndType = {
                     name = "print",
-                    descriptor = Descriptor.compile (Descriptor.Method {
+                    descriptor = Descriptor.Method {
                       return = Descriptor.Void,
                       params = [
                         Descriptor.Object (ClassName.fromString "java/lang/String")
                       ]
-                    })
+                    }
                   },
                   bootstrapMethod = {
                     methodHandle = MethodHandle.InvokeStatic,
@@ -54,7 +54,14 @@ structure Main =
                       class = ClassName.fromString "Main",
                       nameAndType = {
                         name = "bootstrap",
-                        descriptor = "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;)Ljava/lang/invoke/CallSite;"
+                        descriptor = Descriptor.Method {
+                          return = Descriptor.Type (Descriptor.Object (ClassName.fromString "java/lang/invoke/CallSite")),
+                          params = [
+                            Descriptor.Object (ClassName.fromString "java/lang/invoke/MethodHandles$Lookup"),
+                            Descriptor.Object (ClassName.fromString "java/lang/String"),
+                            Descriptor.Object (ClassName.fromString "java/lang/invoke/MethodType")
+                          ]
+                        }
                       }
                     },
                     methodParams = []

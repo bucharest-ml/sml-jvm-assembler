@@ -478,7 +478,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val bytes = Word8Vector.prepend (0wxB2, u2 fieldIndex)
@@ -492,7 +492,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val bytes = Word8Vector.prepend (0wxB3, u2 fieldIndex)
@@ -506,7 +506,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val bytes = Word8Vector.prepend (0wxB4, u2 fieldIndex)
@@ -520,7 +520,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val bytes = Word8Vector.prepend (0wxB5, u2 fieldIndex)
@@ -534,7 +534,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val bytes = Word8Vector.prepend (0wxB6, u2 methodIndex)
@@ -550,7 +550,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val bytes = Word8Vector.prepend (0wxB7, u2 methodIndex)
@@ -566,7 +566,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val bytes = Word8Vector.prepend (0wxB8, u2 methodIndex)
@@ -582,7 +582,7 @@ structure Instr =
               class = class,
               nameAndType = {
                 name = name,
-                descriptor = Descriptor.compile descriptor
+                descriptor = descriptor
               }
             }
           val paramsCount = Descriptor.paramsCount descriptor
