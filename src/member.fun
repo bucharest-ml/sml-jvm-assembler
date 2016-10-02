@@ -9,6 +9,9 @@ functor Member(Flag : sig type t val compile : t -> Word.word end) =
 
     fun from t = t
 
+    fun nameAndType ({ name, descriptor, ... } : t) =
+      { name = name, descriptor = descriptor }
+
     fun compile constPool { accessFlags, name, descriptor, attributes } =
       let
         open Util
