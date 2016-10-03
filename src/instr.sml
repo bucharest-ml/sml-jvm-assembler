@@ -3,6 +3,8 @@ structure Const =
     datatype t =
       Integer of Integer.t
     | Float of Float.t
+    | Long of Long.t
+    | Double of Double.t
     | String of Text.t
     | Class of ClassName.t
     | MethodType of Text.t
@@ -60,8 +62,6 @@ structure Instr =
     | bipush of Word8.word
     | sipush of int
     | ldc of Const.t
-    | ldc_w of int
-    | ldc2_w of int
     | iload of index (* Loads *)
     | lload of index
     | fload of index
@@ -312,19 +312,32 @@ structure Instr =
       | sipush short      => (Word8Vector.prepend (0wx11, u2 short), 1, constPool)
       | ldc const =>
         let
-          val (index, constPool) =
-            case const of
-              Const.Integer a => ConstPool.withInteger constPool a
-            | Const.Float a => ConstPool.withFloat constPool a
-            | Const.String a => ConstPool.withString constPool a
-            | Const.Class a => ConstPool.withClass constPool a
-            | Const.MethodType a => ConstPool.withMethodType constPool a
-            | Const.MethodHandle a => ConstPool.withMethodHandle constPool a
+          fun ldc addConst value =
+            let
+              val (index, constPool) = addConst constPool value
+            in
+              if index < 256
+              then (0wx12 +: u1 index, 1, constPool) (* ldc *)
+              else (0wx13 +: u2 index, 1, constPool) (* ldc_w *)
+            end
+
+          fun ldc2_w addConst value =
+            let
+              val (index, constPool) = addConst constPool value
+            in
+              (0wx14 +: u2 index, 2, constPool)
+            end
         in
-          (vec [0wx12, Word8.fromInt index], 1, constPool)
+          case const of
+            Const.Integer a      => ldc ConstPool.withInteger a
+          | Const.Float a        => ldc ConstPool.withFloat a
+          | Const.String a       => ldc ConstPool.withString a
+          | Const.Class a        => ldc ConstPool.withClass a
+          | Const.MethodType a   => ldc ConstPool.withMethodType a
+          | Const.MethodHandle a => ldc ConstPool.withMethodHandle a
+          | Const.Long a         => ldc2_w ConstPool.withLong a
+          | Const.Double a       => ldc2_w ConstPool.withDouble a
         end
-      | ldc_w index       => (Word8Vector.prepend (0wx13, u2 index), 1, constPool)
-      | ldc2_w index      => (Word8Vector.prepend (0wx14, u2 index), 2, constPool)
       | iload index       => (vec [0wx15, index], 1, constPool)
       | lload index       => (vec [0wx16, index], 2, constPool)
       | fload index       => (vec [0wx17, index], 1, constPool)

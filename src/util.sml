@@ -2,6 +2,8 @@ structure Util =
   struct
     val vec = Word8Vector.fromList
 
+    fun u1 word = vec [Word8.fromInt word]
+
     fun u2 word =
       let
         open Word32 infix andb >>
