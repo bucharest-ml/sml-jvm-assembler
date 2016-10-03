@@ -5,8 +5,8 @@ structure Const =
     | Float of Float.t
     | String of Text.t
     | Class of ClassName.t
-    | MethodType
-    | MethodHandle
+    | MethodType of Text.t
+    | MethodHandle of { kind : MethodHandle.t, symbolRef : ConstPool.symbol_ref }
   end
 
 structure ArrayType =
@@ -314,12 +314,12 @@ structure Instr =
         let
           val (index, constPool) =
             case const of
-              Const.Integer value => ConstPool.withInteger constPool value
-            | Const.Float value => ConstPool.withFloat constPool value
-            | Const.String value => ConstPool.withString constPool value
-            | Const.Class value => ConstPool.withClass constPool value
-            | Const.MethodType => raise Fail "not implemented"
-            | Const.MethodHandle => raise Fail "not implemented"
+              Const.Integer a => ConstPool.withInteger constPool a
+            | Const.Float a => ConstPool.withFloat constPool a
+            | Const.String a => ConstPool.withString constPool a
+            | Const.Class a => ConstPool.withClass constPool a
+            | Const.MethodType a => ConstPool.withMethodType constPool a
+            | Const.MethodHandle a => ConstPool.withMethodHandle constPool a
         in
           (vec [0wx12, Word8.fromInt index], 1, constPool)
         end
