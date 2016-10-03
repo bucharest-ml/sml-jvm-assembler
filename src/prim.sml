@@ -1,23 +1,23 @@
 structure Integer =
   struct
-    type t = int
-    val compare = Int.compare
+    type t = Int32.int
+    val compare = Int32.compare
   end
 
 structure Long =
   struct
-    type t = int
-    val compare = Int.compare
+    type t = Int64.int
+    val compare = Int64.compare
   end
 
 structure Float =
   struct
-    type t = real
+    type t = Real.real
     val compare = Real.compare
   end
 
 structure Double =
   struct
-    type t = real
-    val compare = Real.compare
+    type t = Real64.real
+    val compare = Real64.compare
   end
