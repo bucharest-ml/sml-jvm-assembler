@@ -1,12 +1,13 @@
-structure Util =
+structure Util :> UTIL =
   struct
+    open Word infix andb >>
+
     val vec = Word8Vector.fromList
 
     fun u1 word = vec [Word8.fromInt word]
 
     fun u2 word =
       let
-        open Word infix andb >>
         val word = Word.fromInt word
       in
         vec [
@@ -15,9 +16,13 @@ structure Util =
         ]
       end
 
+    (*
+     * TODO: Is it safe to use Word here? In SML/NJ, a word is 31 bits, so we
+     * may lose 1-bit of precision. Maybe it's safe within the constraints of
+     * the JVMS.
+     *)
     fun u4 word =
       let
-        open Word infix andb >>
         val word = Word.fromInt word
       in
         vec [
