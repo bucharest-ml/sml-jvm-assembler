@@ -291,7 +291,7 @@ structure ConstPool :> CONST_POOL =
               | MethodHandle (referenceKind, entryIndex) =>
                   Word8Vector.concat [
                     vec [0w15],
-                    vec [Word8.fromInt referenceKind],
+                    u1 referenceKind,
                     u2 entryIndex
                   ]
           in
