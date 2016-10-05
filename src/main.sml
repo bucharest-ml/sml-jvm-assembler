@@ -14,7 +14,8 @@ structure Main =
         params = [
           Descriptor.Object (ClassName.fromString "java/lang/invoke/MethodHandles$Lookup"),
           Descriptor.Object (ClassName.fromString "java/lang/String"),
-          Descriptor.Object (ClassName.fromString "java/lang/invoke/MethodType")
+          Descriptor.Object (ClassName.fromString "java/lang/invoke/MethodType"),
+          Descriptor.Object (ClassName.fromString "java/lang/Class")
         ]
       },
       attributes = [
@@ -25,7 +26,7 @@ structure Main =
             Instr.new (ClassName.fromString "java/lang/invoke/ConstantCallSite"),
             Instr.dup,
             Instr.aload_0,
-            Instr.ldc (Const.Class (ClassName.fromString "Main")),
+            Instr.aload_3,
             Instr.aload_1,
             Instr.aload_2,
             Instr.invokevirtual {
@@ -95,14 +96,22 @@ structure Main =
           code = [
             Instr.ldc (Const.String "Hello, InvokeDynamic!"),
             Instr.invokedynamic {
-              nameAndType = Method.nameAndType printString,
+              nameAndType = {
+                name = "print",
+                descriptor = Descriptor.Method {
+                  return = Descriptor.Void,
+                  params = [
+                    Descriptor.Object (ClassName.fromString "java/lang/String")
+                  ]
+                }
+              },
               bootstrapMethod = {
                 methodHandle = MethodHandle.InvokeStatic,
                 symbolRef = {
                   class = ClassName.fromString "Main",
                   nameAndType = Method.nameAndType bootstrap
                 },
-                methodParams = []
+                methodParams = [Const.Class "Main"]
               }
             },
             (* Instr.getstatic (symbol "java/lang/System" "out" "Ljava/io/PrintStream;"), *)

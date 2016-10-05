@@ -11,7 +11,7 @@ signature CONST_POOL =
       bootstrapMethod : {
         methodHandle : MethodHandle.t,
         symbolRef : symbol_ref,
-        methodParams : unit list (* TODO *)
+        methodParams : Const.t list
       }
     }
 

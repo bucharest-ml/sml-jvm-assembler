@@ -1,16 +1,3 @@
-structure Const =
-  struct
-    datatype t =
-      Integer of Integer.t
-    | Float of Float.t
-    | Long of Long.t
-    | Double of Double.t
-    | String of Text.t
-    | Class of ClassName.t
-    | MethodType of Text.t
-    | MethodHandle of { kind : MethodHandle.t, symbolRef : ConstPool.symbol_ref }
-  end
-
 structure ArrayType =
   struct
     datatype t =

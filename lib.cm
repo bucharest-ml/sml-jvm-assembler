@@ -7,6 +7,7 @@ is
   src/attr.sml
   src/class.sml
   src/class-name.sml
+  src/const.sml
   src/const-pool.sig
   src/const-pool.sml
   src/descriptor.sml

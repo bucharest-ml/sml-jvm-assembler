@@ -10,7 +10,7 @@ structure ConstPool :> CONST_POOL =
       bootstrapMethod : {
         methodHandle : MethodHandle.t,
         symbolRef : symbol_ref,
-        methodParams : unit list (* TODO *)
+        methodParams : Const.t list
       }
     }
 
@@ -198,10 +198,32 @@ structure ConstPool :> CONST_POOL =
           symbolRef = symbolRef
         }
 
+        val (arguments, constPool) =
+          let
+            fun fold (methodParam, (arguments, constPool)) =
+              let
+                val (index, constPool) =
+                  case methodParam of
+                    Const.Integer a      => withInteger constPool a
+                  | Const.Float a        => withFloat constPool a
+                  | Const.String a       => withString constPool a
+                  | Const.Class a        => withClass constPool a
+                  | Const.MethodType a   => withMethodType constPool a
+                  | Const.MethodHandle a => withMethodHandle constPool a
+                  | Const.Long a         => withLong constPool a
+                  | Const.Double a       => withDouble constPool a
+              in
+                (index :: arguments, constPool)
+              end
+            val seed = ([], constPool)
+          in
+            List.foldr fold seed methodParams
+          end
+
         val (bootstrapMethodIndex, constPool) =
           let
             val { counter, entries, bootstrap = { counter = bootCounter, entries = bootEntries } } = constPool
-            val entry = { methodRef = methodHandleIndex, arguments = [] }
+            val entry = { methodRef = methodHandleIndex, arguments = arguments }
           in
             case BootstrapMethodsMap.find (bootEntries, entry) of
               SOME entryIndex => (entryIndex, constPool)
