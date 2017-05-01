@@ -138,6 +138,39 @@ structure Main =
       ]
     }
 
+    val withBranch = Method.from {
+      name = "main",
+      accessFlags = [Method.Flag.PUBLIC, Method.Flag.STATIC],
+      descriptor = Descriptor.Method {
+        return = Descriptor.Void,
+        params = [
+          Descriptor.Array (Descriptor.Object (ClassName.fromString "java/lang/String"))
+        ]
+      },
+      attributes = [
+        Attr.Code {
+          exceptionTable = [],
+          attributes = [],
+          code = let open Instr in [
+            aload_0,
+            arraylength,
+            iconst_1,
+            if_icmpne "else",
+            getstatic (symbol "java/lang/System" "out" "Ljava/io/PrintStream;"),
+            ldc (Const.String "T"),
+            invokevirtual (symbol "java/io/PrintStream" "println" "(Ljava/lang/String;)V"),
+            goto "return",
+            label "else",
+            getstatic (symbol "java/lang/System" "out" "Ljava/io/PrintStream;"),
+            ldc (Const.String "F"),
+            invokevirtual (symbol "java/io/PrintStream" "println" "(Ljava/lang/String;)V"),
+            label "return",
+            return
+          ] end
+        }
+      ]
+    }
+
     val class = Class.from {
       accessFlags = [Class.Flag.PUBLIC],
       thisClass = ClassName.fromString "Main",
@@ -154,7 +187,8 @@ structure Main =
           ]
         }
       ],
-      methods = [main, printString, bootstrap]
+      (* methods = [main, printString, bootstrap] *)
+      methods = [withBranch]
     }
 
     val trim =

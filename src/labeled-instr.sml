@@ -8,9 +8,13 @@ structure LabeledInstr =
     type label = string
 
     datatype t =
-      GOTO of (Instr.offset -> Instr.t) * label
+      INSTR of Instr.t
     | LABEL of label
-    | INSTR of Instr.t
+    | GOTO of {
+        label : label,
+        instr : Instr.offset -> Instr.t,
+        byteCount : int
+      }
 
     val label           = LABEL
     val nop             = INSTR Instr.nop
@@ -164,20 +168,20 @@ structure LabeledInstr =
     val fcmpg           = INSTR Instr.fcmpg
     val dcmpl           = INSTR Instr.dcmpl
     val dcmpg           = INSTR Instr.dcmpg
-    fun ifeq label      = GOTO (Instr.ifeq, label)
-    fun ifne label      = GOTO (Instr.ifne, label)
-    fun iflt label      = GOTO (Instr.iflt, label)
-    fun ifge label      = GOTO (Instr.ifge, label)
-    fun ifgt label      = GOTO (Instr.ifgt, label)
-    fun ifle label      = GOTO (Instr.ifle, label)
-    fun if_icmpeq label = GOTO (Instr.if_icmpeq, label)
-    fun if_icmpne label = GOTO (Instr.if_icmpne, label)
-    fun if_icmplt label = GOTO (Instr.if_icmplt, label)
-    fun if_icmpge label = GOTO (Instr.if_icmpge, label)
-    fun if_icmpgt label = GOTO (Instr.if_icmpgt, label)
-    fun if_icmple label = GOTO (Instr.if_icmple, label)
-    fun if_acmpeq label = GOTO (Instr.if_acmpeq, label)
-    fun if_acmpne label = GOTO (Instr.if_acmpne, label)
+    fun ifeq label      = GOTO { label = label, instr = Instr.ifeq, byteCount = 3 }
+    fun ifne label      = GOTO { label = label, instr = Instr.ifne, byteCount = 3 }
+    fun iflt label      = GOTO { label = label, instr = Instr.iflt, byteCount = 3 }
+    fun ifge label      = GOTO { label = label, instr = Instr.ifge, byteCount = 3 }
+    fun ifgt label      = GOTO { label = label, instr = Instr.ifgt, byteCount = 3 }
+    fun ifle label      = GOTO { label = label, instr = Instr.ifle, byteCount = 3 }
+    fun if_icmpeq label = GOTO { label = label, instr = Instr.if_icmpeq, byteCount = 3 }
+    fun if_icmpne label = GOTO { label = label, instr = Instr.if_icmpne, byteCount = 3 }
+    fun if_icmplt label = GOTO { label = label, instr = Instr.if_icmplt, byteCount = 3 }
+    fun if_icmpge label = GOTO { label = label, instr = Instr.if_icmpge, byteCount = 3 }
+    fun if_icmpgt label = GOTO { label = label, instr = Instr.if_icmpgt, byteCount = 3 }
+    fun if_icmple label = GOTO { label = label, instr = Instr.if_icmple, byteCount = 3 }
+    fun if_acmpeq label = GOTO { label = label, instr = Instr.if_acmpeq, byteCount = 3 }
+    fun if_acmpne label = GOTO { label = label, instr = Instr.if_acmpne, byteCount = 3 }
     val getstatic       = INSTR o Instr.getstatic
     val putstatic       = INSTR o Instr.putstatic
     val getfield        = INSTR o Instr.getfield
@@ -196,8 +200,8 @@ structure LabeledInstr =
     val instanceof      = INSTR o Instr.instanceof
     val monitorenter    = INSTR Instr.monitorenter
     val monitorexit     = INSTR Instr.monitorexit
-    fun goto label      = GOTO (Instr.goto, label)
-    fun jsr label       = GOTO (Instr.jsr, label)
+    fun goto label      = GOTO { label = label, instr = Instr.goto, byteCount = 3 }
+    fun jsr label       = GOTO { label = label, instr = Instr.jsr, byteCount = 3 }
     val ret             = INSTR o Instr.ret
     val tableswitch     = INSTR Instr.tableswitch
     val lookupswitch    = INSTR Instr.lookupswitch
@@ -209,42 +213,126 @@ structure LabeledInstr =
     val return          = INSTR Instr.return
     val wide            = INSTR Instr.wide
     val multianewarray  = INSTR o Instr.multianewarray
-    fun ifnull label    = GOTO (Instr.ifnull, label)
-    fun ifnonnull label = GOTO (Instr.ifnonnull, label)
-    fun goto_w label    = GOTO (Instr.goto_w, label)
-    fun jsr_w label     = GOTO (Instr.jsr_w, label)
+    fun ifnull label    = GOTO { label = label, instr = Instr.ifnull, byteCount = 3 }
+    fun ifnonnull label = GOTO { label = label, instr = Instr.ifnonnull, byteCount = 3 }
+    fun goto_w label    = GOTO { label = label, instr = Instr.goto_w, byteCount = 5 }
+    fun jsr_w label     = GOTO { label = label, instr = Instr.jsr_w, byteCount = 5 }
     val breakpoint      = INSTR Instr.breakpoint
     val impdep1         = INSTR Instr.impdep1
     val impdep2         = INSTR Instr.impdep2
 
+    structure LabelMap = BinaryMapFn(struct
+      type ord_key = string
+      val compare = String.compare
+    end)
+
+    structure State =
+      struct
+        type t = {
+          constPool : ConstPool.t,
+          stackSize : int,
+          maxStack : int,
+          maxLocals : int,
+          bytes : Word8Vector.vector,
+          seenLabels : Instr.offset LabelMap.map
+        }
+      end
+
     fun compileList constPool instrs =
       let
-        fun loop (instr, { constPool, stackSize, maxStack, maxLocals, bytes }) =
-          case instr of
-            GOTO label => raise Fail "not implemented"
-          | LABEL label => raise Fail "not implemented"
-          | INSTR instr =>
-            let
-              val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
-            in
-              {
-                constPool = constPool,
-                stackSize = stackSize + stackDiff,
-                maxStack = Int.max (maxStack, stackSize + stackDiff),
-                maxLocals = maxLocals,
-                bytes = Word8Vector.concat [bytes, opcodes]
-              }
-            end
+        fun traverse [] state = state
+          | traverse (instr :: rest) (state as { offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels }) =
+              case instr of
+                GOTO { label, instr, byteCount } => let in
+                  case LabelMap.find (seenLabels, label) of
+                    SOME labelOffset =>
+                    let
+                      val instr = instr (labelOffset - offset)
+                      val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
+                    in
+                      traverse rest {
+                        offset = offset + Word8Vector.length opcodes,
+                        constPool = constPool,
+                        stackSize = stackSize + stackDiff,
+                        maxStack = Int.max (maxStack, stackSize + stackDiff),
+                        maxLocals = maxLocals,
+                        bytes = Word8Vector.concat [bytes, opcodes],
+                        seenLabels = seenLabels
+                      }
+                    end
+                  | NONE =>
+                    let
+                      (*
+                       * We don't have a label yet; traverse the rest of the
+                       * instruction stream and then try again, maybe a label
+                       * has been found.
+                       *)
+                      val result = traverse rest {
+                        offset = offset + byteCount,
+                        constPool = constPool,
+                        stackSize = stackSize,
+                        maxStack = maxStack,
+                        maxLocals = maxLocals,
+                        bytes = Util.vec [],
+                        seenLabels = seenLabels
+                      }
+                    in
+                      case LabelMap.find (#seenLabels result, label) of
+                        NONE => raise Fail ("undefined label: " ^ label)
+                      | SOME labelOffset =>
+                        let
+                          val instr = instr (labelOffset - offset)
+                          val (opcodes, stackDiff, constPool) =
+                            Instr.compile (#constPool result) instr
+                        in
+                          {
+                            offset = #offset result,
+                            constPool = constPool,
+                            stackSize = stackSize + stackDiff,
+                            maxStack = Int.max (maxStack, stackSize + stackDiff),
+                            maxLocals = #maxLocals result,
+                            bytes = Word8Vector.concat [bytes, opcodes, #bytes result],
+                            seenLabels = #seenLabels result
+                          }
+                        end
+                    end
+                end
+              | LABEL label =>
+                  traverse rest {
+                    offset = offset,
+                    constPool = constPool,
+                    stackSize = stackSize,
+                    maxStack = maxStack,
+                    maxLocals = maxLocals,
+                    bytes = bytes,
+                    seenLabels = LabelMap.insert (seenLabels, label, offset)
+                  }
+              | INSTR instr =>
+                let
+                  val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
+                in
+                  traverse rest {
+                    offset = offset + Word8Vector.length opcodes,
+                    constPool = constPool,
+                    stackSize = stackSize + stackDiff,
+                    maxStack = Int.max (maxStack, stackSize + stackDiff),
+                    maxLocals = maxLocals,
+                    bytes = Word8Vector.concat [bytes, opcodes],
+                    seenLabels = seenLabels
+                  }
+                end
 
         val seed = {
+          offset = 0,
           constPool = constPool,
           stackSize = 0,
           maxStack = 0,
           maxLocals = 10, (* TODO: compute maxLocals *)
-          bytes = Util.vec []
+          bytes = Util.vec [],
+          seenLabels = LabelMap.empty
         }
 
-        val result = List.foldl loop seed instrs
+        val result = traverse instrs seed
       in
         {
           bytes = #bytes result,
