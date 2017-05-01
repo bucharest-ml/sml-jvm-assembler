@@ -13,6 +13,7 @@ is
   src/descriptor.sml
   src/field.sml
   src/instr.sml
+  src/labeled-instr.sml
   src/main.sml
   src/member.fun
   src/method.sml

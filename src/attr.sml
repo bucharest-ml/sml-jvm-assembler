@@ -22,7 +22,7 @@ structure Attr =
       Custom
     | ConstantValue of ConstantValue.t
     | Code of {
-        code : Instr.t list,
+        code : LabeledInstr.t list,
         exceptionTable : ExceptionInfo.t list,
         attributes : t list
       }
@@ -90,38 +90,16 @@ structure Attr =
 
     and compileInstructions constPool code =
       let
-        fun compile (instr, { stackSize, maxStack, maxLocals, constPool, bytes }) =
-          let
-            val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
-          in
-            {
-              stackSize = stackSize + stackDiff,
-              maxStack = Int.max (maxStack, stackSize + stackDiff),
-              maxLocals = maxLocals,
-              constPool = constPool,
-              bytes = Word8Vector.concat [bytes, opcodes]
-            }
-          end
-
-        val seed = {
-          stackSize = 0,
-          maxStack = 0,
-          maxLocals = 10, (* TODO: compute maxLocals *)
-          constPool = constPool,
-          bytes = vec []
-        }
-
-        val { maxStack, maxLocals, constPool, bytes, ... } =
-          List.foldl compile seed code
+        val result = LabeledInstr.compileList constPool code
 
         val bytes = Word8Vector.concat [
-          u2 maxStack,
-          u2 maxLocals,
-          u4 (Word8Vector.length bytes),
-          bytes
+          u2 (#maxStack result),
+          u2 (#maxLocals result),
+          u4 (Word8Vector.length (#bytes result)),
+          (#bytes result)
         ]
       in
-        (bytes, constPool)
+        (bytes, (#constPool result))
       end
 
     and compileConstantValue constPool value =

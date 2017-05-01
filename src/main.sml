@@ -1,5 +1,7 @@
 structure Main =
   struct
+    structure Instr = LabeledInstr
+
     fun symbol class name descriptor = {
       class = ClassName.fromString class,
       name = name,
