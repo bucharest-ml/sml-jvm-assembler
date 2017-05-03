@@ -226,17 +226,6 @@ structure LabeledInstr =
       val compare = String.compare
     end)
 
-    structure State =
-      struct
-        type t = {
-          constPool : ConstPool.t,
-          stackSize : int,
-          maxStack : int,
-          maxLocals : int,
-          bytes : Word8Vector.vector,
-          seenLabels : Instr.offset LabelMap.map
-        }
-      end
 
     fun compileList constPool instrs =
       let
