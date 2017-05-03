@@ -226,6 +226,11 @@ structure LabeledInstr =
       val compare = String.compare
     end)
 
+    fun toString instr =
+      case instr of
+        INSTR instr => "INSTR " ^ Instr.toString instr
+      | LABEL label => "LABEL " ^ label
+      | GOTO { label, instr, ... } => "GOTO (" ^ label ^ ", " ^ Instr.toString (instr 0) ^ ")"
 
     fun compileList constPool instrs =
       let
