@@ -50,7 +50,7 @@ structure Class =
         val constPool = ConstPool.empty
         val magic = vec [0wxCA, 0wxFE, 0wxBA, 0wxBE]
         val minorVersion = u2 0
-        val majorVersion = u2 49
+        val majorVersion = u2 52
         val (thisClassIndex, constPool) = ConstPool.withClass constPool thisClass
         val (superClassIndex, constPool) = ConstPool.withClass constPool superClass
 

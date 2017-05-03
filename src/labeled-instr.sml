@@ -235,23 +235,26 @@ structure LabeledInstr =
     fun compileList constPool instrs =
       let
         fun traverse [] state = state
-          | traverse (instr :: rest) (state as { offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels }) =
+          | traverse (instr :: rest) (state as { index, offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels, offsetedInstrs }) =
               case instr of
                 GOTO { label, instr, byteCount } => let in
                   case LabelMap.find (seenLabels, label) of
-                    SOME labelOffset =>
+                    SOME (labelOffset, labelIndex) =>
                     let
+                      val offsetedInstr = instr labelIndex
                       val instr = instr (labelOffset - offset)
                       val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
                     in
                       traverse rest {
+                        index = index + 1,
                         offset = offset + Word8Vector.length opcodes,
                         constPool = constPool,
                         stackSize = stackSize + stackDiff,
                         maxStack = Int.max (maxStack, stackSize + stackDiff),
                         maxLocals = maxLocals,
                         bytes = Word8Vector.concat [bytes, opcodes],
-                        seenLabels = seenLabels
+                        seenLabels = seenLabels,
+                        offsetedInstrs = (offset, offsetedInstr) :: offsetedInstrs
                       }
                     end
                   | NONE =>
@@ -262,68 +265,94 @@ structure LabeledInstr =
                        * has been found.
                        *)
                       val result = traverse rest {
+                        index = index + 1,
                         offset = offset + byteCount,
                         constPool = constPool,
                         stackSize = stackSize,
                         maxStack = maxStack,
                         maxLocals = maxLocals,
                         bytes = Util.vec [],
-                        seenLabels = seenLabels
+                        seenLabels = seenLabels,
+                        offsetedInstrs = []
                       }
                     in
                       case LabelMap.find (#seenLabels result, label) of
                         NONE => raise Fail ("undefined label: " ^ label)
-                      | SOME labelOffset =>
+                      | SOME (labelOffset, labelIndex) =>
                         let
+                          (*
+                           * We're doing a kind of a dirty thing here. We're
+                           * misusing the instruction's offset field by putting
+                           * the *index* of the target instruction. The index
+                           * as it appears in our instruction list, not in the
+                           * final byte stream.
+                           *)
+                          val offsetedInstr = instr labelIndex
                           val instr = instr (labelOffset - offset)
                           val (opcodes, stackDiff, constPool) =
                             Instr.compile (#constPool result) instr
                         in
                           {
-                            offset = #offset result,
+                            index = index + 1,
+                            offset = #offset result, (* TODO: check this is correct *)
                             constPool = constPool,
                             stackSize = stackSize + stackDiff,
-                            maxStack = Int.max (maxStack, stackSize + stackDiff),
+                            maxStack = Int.max (#maxStack result, stackSize + stackDiff),
                             maxLocals = #maxLocals result,
-                            bytes = Word8Vector.concat [bytes, opcodes, #bytes result],
-                            seenLabels = #seenLabels result
+                            seenLabels = #seenLabels result,
+                            bytes = Word8Vector.concat [
+                              bytes,
+                              opcodes,
+                              #bytes result
+                            ],
+                            offsetedInstrs = List.concat [
+                              #offsetedInstrs result,
+                              [(offset, offsetedInstr)],
+                              offsetedInstrs
+                            ]
                           }
                         end
                     end
                 end
               | LABEL label =>
                   traverse rest {
+                    index = index,
                     offset = offset,
                     constPool = constPool,
                     stackSize = stackSize,
                     maxStack = maxStack,
                     maxLocals = maxLocals,
                     bytes = bytes,
-                    seenLabels = LabelMap.insert (seenLabels, label, offset)
+                    seenLabels = LabelMap.insert (seenLabels, label, (offset, index)),
+                    offsetedInstrs = offsetedInstrs
                   }
               | INSTR instr =>
                 let
                   val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
                 in
                   traverse rest {
+                    index = index + 1,
                     offset = offset + Word8Vector.length opcodes,
                     constPool = constPool,
                     stackSize = stackSize + stackDiff,
                     maxStack = Int.max (maxStack, stackSize + stackDiff),
                     maxLocals = maxLocals,
                     bytes = Word8Vector.concat [bytes, opcodes],
-                    seenLabels = seenLabels
+                    seenLabels = seenLabels,
+                    offsetedInstrs = (offset, instr) :: offsetedInstrs
                   }
                 end
 
         val seed = {
+          index = 0,
           offset = 0,
           constPool = constPool,
           stackSize = 0,
           maxStack = 0,
           maxLocals = 10, (* TODO: compute maxLocals *)
           bytes = Util.vec [],
-          seenLabels = LabelMap.empty
+          seenLabels = LabelMap.empty,
+          offsetedInstrs = []
         }
 
         val result = traverse instrs seed
@@ -332,7 +361,8 @@ structure LabeledInstr =
           bytes = #bytes result,
           maxStack = #maxStack result,
           maxLocals = #maxLocals result,
-          constPool = #constPool result
+          constPool = #constPool result,
+          offsetedInstrs = List.rev (#offsetedInstrs result)
         }
       end
   end

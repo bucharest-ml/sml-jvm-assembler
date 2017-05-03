@@ -13,6 +13,7 @@ is
   src/descriptor.sml
   src/field.sml
   src/instr.sml
+  src/java.sml
   src/labeled-instr.sml
   src/main.sml
   src/member.fun
@@ -23,3 +24,10 @@ is
   src/text.sml
   src/util.sig
   src/util.sml
+
+  src/stack-map/frame.sml
+  src/stack-map/stack-lang.sml
+  src/stack-map/stack-map.sml
+  src/stack-map/verification-type.sml
+  src/stack-map/verifier.sig
+  src/stack-map/verifier.sml

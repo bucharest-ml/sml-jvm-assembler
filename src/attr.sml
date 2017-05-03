@@ -26,7 +26,7 @@ structure Attr =
         exceptionTable : ExceptionInfo.t list,
         attributes : t list
       }
-    | StackMapTable
+    | StackMapTable of (Instr.offset * Instr.t) list
     | Exceptions of ClassName.t list
     | BootstrapMethods of ConstPool.bootstrap_method list
     | InnerClasses
@@ -58,6 +58,7 @@ structure Attr =
       | Signature typeSignature => compileSignature constPool typeSignature
       | SourceFile value => compileSourceFile constPool value
       | BootstrapMethods methods => compileBootstrapMethods constPool methods
+      | StackMapTable instrs => compileStackMapTable constPool instrs
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
@@ -67,12 +68,35 @@ structure Attr =
           (u2 0, constPool) (* TODO: add exceptions *)
 
         fun compileAttributes constPool attributes =
-          (u2 0, constPool) (* TODO: add attributes *)
+          let
+            fun fold (attr, { bytes, length, constPool }) =
+              let
+                val (attrBytes, constPool) = compile constPool attr
+              in
+                {
+                  bytes = Word8Vector.concat [bytes, attrBytes],
+                  length = length + 1,
+                  constPool = constPool
+                }
+              end
+
+            val seed = {
+              bytes = vec [],
+              length = 0,
+              constPool = constPool
+            }
+
+            val { bytes, length, constPool } = List.foldl fold seed attributes
+            val bytes = Word8Vector.concat [u2 length, bytes]
+          in
+            (bytes, constPool)
+          end
 
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "Code"
-        val (instrBytes, constPool) = compileInstructions constPool code
+        (* TODO: generate and add StackMapTable only if version >= 50 *)
+        val (instrBytes, constPool, stackMapTable) = compileInstructions constPool code
         val (exceptionBytes, constPool) = compileExceptions constPool exceptionTable
-        val (attributeBytes, constPool) = compileAttributes constPool attributes
+        val (attributeBytes, constPool) = compileAttributes constPool (stackMapTable :: attributes)
         val attributeLength =
           Word8Vector.length instrBytes +
           Word8Vector.length exceptionBytes +
@@ -91,7 +115,7 @@ structure Attr =
     and compileInstructions constPool code =
       let
         val result = LabeledInstr.compileList constPool code
-
+        val stackMapTable = StackMapTable (#offsetedInstrs result)
         val bytes = Word8Vector.concat [
           u2 (#maxStack result),
           u2 (#maxLocals result),
@@ -99,7 +123,7 @@ structure Attr =
           (#bytes result)
         ]
       in
-        (bytes, (#constPool result))
+        (bytes, #constPool result, stackMapTable)
       end
 
     and compileConstantValue constPool value =
@@ -216,6 +240,22 @@ structure Attr =
         (bytes, constPool)
       end
 
+    and compileStackMapTable constPool instrs =
+      let
+        val frames = StackLang.compileCompact (StackLang.interpret (Verifier.verify instrs))
+        val (stackMapBytes, constPool) = StackMap.compileFrames constPool frames
+        val (attrIndex, constPool) = ConstPool.withUtf8 constPool "StackMapTable"
+        val attributeLength = 2 + Word8Vector.length stackMapBytes
+        val bytes = Word8Vector.concat [
+          u2 attrIndex,
+          u4 attributeLength,
+          u2 (List.length frames),
+          stackMapBytes
+        ]
+      in
+        (bytes, constPool)
+      end
+
     fun minimumVersion attr =
       case attr of
         Custom                               => { major = 45, minor = 3 }
@@ -237,7 +277,7 @@ structure Attr =
       | RuntimeVisibleAnnotations            => { major = 49, minor = 0 }
       | RuntimeInvisibleAnnotations          => { major = 49, minor = 0 }
       | LocalVariableTypeTable               => { major = 49, minor = 0 }
-      | StackMapTable                        => { major = 50, minor = 0 }
+      | StackMapTable _                      => { major = 50, minor = 0 }
       | BootstrapMethods _                   => { major = 51, minor = 0 }
       | MethodParameters                     => { major = 52, minor = 0 }
       | RuntimeVisibleTypeAnnotations        => { major = 52, minor = 0 }
