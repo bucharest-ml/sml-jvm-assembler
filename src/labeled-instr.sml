@@ -383,20 +383,18 @@ structure LabeledInstr =
           | (INSTR instr :: rest) => traverseInstr instr state rest
           | (GOTO goto :: rest) => traverseGoto goto state rest
 
-        val seed = {
-          index = 0,
-          offset = 0,
-          constPool = constPool,
-          stackSize = 0,
-          maxStack = 0,
-          maxLocals = 0,
-          bytes = Util.vec [],
-          seenLabels = LabelMap.empty,
-          offsetedInstrs = []
-        }
-
         val { bytes, maxStack, maxLocals, constPool, offsetedInstrs, ... } =
-          traverse instrs seed
+          traverse instrs {
+            index = 0,
+            offset = 0,
+            constPool = constPool,
+            stackSize = 0,
+            maxStack = 0,
+            maxLocals = 0,
+            bytes = Util.vec [],
+            seenLabels = LabelMap.empty,
+            offsetedInstrs = []
+          }
       in
         {
           bytes = bytes,
