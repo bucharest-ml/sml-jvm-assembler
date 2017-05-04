@@ -235,7 +235,7 @@ structure LabeledInstr =
     fun compileList constPool instrs =
       let
         fun traverse [] state = state
-          | traverse (instr :: rest) (state as { index, offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels, offsetedInstrs }) =
+          | traverse (instr :: rest) { index, offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels, offsetedInstrs } =
               case instr of
                 GOTO { label, instr, byteCount } => let in
                   case LabelMap.find (seenLabels, label) of
