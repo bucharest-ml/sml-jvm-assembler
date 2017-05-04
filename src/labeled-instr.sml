@@ -376,14 +376,15 @@ structure LabeledInstr =
           offsetedInstrs = []
         }
 
-        val result = traverse instrs seed
+        val { bytes, maxStack, maxLocals, constPool, offsetedInstrs, ... } =
+          traverse instrs seed
       in
         {
-          bytes = #bytes result,
-          maxStack = #maxStack result,
-          maxLocals = #maxLocals result,
-          constPool = #constPool result,
-          offsetedInstrs = List.rev (#offsetedInstrs result)
+          bytes = bytes,
+          maxStack = maxStack,
+          maxLocals = maxLocals,
+          constPool = constPool,
+          offsetedInstrs = List.rev offsetedInstrs
         }
       end
   end
