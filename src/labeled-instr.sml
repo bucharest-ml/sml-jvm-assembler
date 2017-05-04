@@ -235,7 +235,11 @@ structure LabeledInstr =
     fun compileList constPool instrs =
       let
         fun traverse [] state = state
-          | traverse (instr :: rest) { index, offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels, offsetedInstrs } =
+          | traverse (instr :: rest) state =
+            let
+              val { index, offset, constPool, stackSize, maxStack, ... } = state
+              val { maxLocals, bytes, seenLabels, offsetedInstrs, ... } = state
+            in
               case instr of
                 LABEL label =>
                   traverse rest {
@@ -366,6 +370,7 @@ structure LabeledInstr =
                         end
                     end
                 end
+            end
 
         val seed = {
           index = 0,
