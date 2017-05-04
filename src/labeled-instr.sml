@@ -297,10 +297,22 @@ structure LabeledInstr =
                             Instr.compile (#constPool result) instr
                         in
                           {
-                            index = index + 1,
-                            offset = #offset result, (* TODO: check this is correct *)
+                            (*
+                             * These values are only read inside recursive
+                             * calls, not when the function returns, so nobody
+                             * will look at them, which means we can use default
+                             * values and save some computations.
+                             *)
+                            index = 0,
+                            offset = 0,
+                            stackSize = 0,
+                            seenLabels = LabelMap.empty,
+
+                            (*
+                             * The following are values that will be read on
+                             * return, so we have to put the real values.
+                             *)
                             constPool = constPool,
-                            stackSize = stackSize + stackDiff,
                             (*
                              * Here's where we compensate for the fact that
                              * above we didn't know the stack diff amount of
@@ -308,7 +320,6 @@ structure LabeledInstr =
                              *)
                             maxStack = Int.max (maxStack, #maxStack result + stackSize + stackDiff),
                             maxLocals = #maxLocals result,
-                            seenLabels = #seenLabels result,
                             bytes = Word8Vector.concat [
                               bytes,
                               opcodes,
