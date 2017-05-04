@@ -329,6 +329,7 @@ structure LabeledInstr =
               | INSTR instr =>
                 let
                   val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
+                  val storeIndex = Option.getOpt (Instr.storeIndex instr, 0) + 1
                 in
                   traverse rest {
                     index = index + 1,
@@ -336,7 +337,7 @@ structure LabeledInstr =
                     constPool = constPool,
                     stackSize = stackSize + stackDiff,
                     maxStack = Int.max (maxStack, stackSize + stackDiff),
-                    maxLocals = maxLocals,
+                    maxLocals = Int.max (maxLocals, storeIndex),
                     bytes = Word8Vector.concat [bytes, opcodes],
                     seenLabels = seenLabels,
                     offsetedInstrs = (offset, instr) :: offsetedInstrs
@@ -349,7 +350,7 @@ structure LabeledInstr =
           constPool = constPool,
           stackSize = 0,
           maxStack = 0,
-          maxLocals = 10, (* TODO: compute maxLocals *)
+          maxLocals = 0,
           bytes = Util.vec [],
           seenLabels = LabelMap.empty,
           offsetedInstrs = []

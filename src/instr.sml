@@ -277,6 +277,35 @@ structure Instr =
     infix +: val op +: = Word8Vector.prepend
     infix :+ val op :+ = Word8Vector.append
 
+    fun storeIndex instr =
+      case instr of
+        istore i => SOME (Word8.toInt i)
+      | lstore i => SOME (Word8.toInt i)
+      | fstore i => SOME (Word8.toInt i)
+      | dstore i => SOME (Word8.toInt i)
+      | astore i => SOME (Word8.toInt i)
+      | istore_0 => SOME 0
+      | lstore_0 => SOME 0
+      | fstore_0 => SOME 0
+      | dstore_0 => SOME 0
+      | astore_0 => SOME 0
+      | istore_1 => SOME 1
+      | lstore_1 => SOME 1
+      | fstore_1 => SOME 1
+      | dstore_1 => SOME 1
+      | astore_1 => SOME 1
+      | istore_2 => SOME 2
+      | lstore_2 => SOME 2
+      | fstore_2 => SOME 2
+      | dstore_2 => SOME 2
+      | astore_2 => SOME 2
+      | istore_3 => SOME 3
+      | lstore_3 => SOME 3
+      | fstore_3 => SOME 3
+      | dstore_3 => SOME 3
+      | astore_3 => SOME 3
+      | _ => NONE
+
     fun compile constPool instr =
       case instr of
         nop               => (vec [0wx0], 0, constPool)
