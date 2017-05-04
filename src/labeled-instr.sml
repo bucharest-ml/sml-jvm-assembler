@@ -237,7 +237,36 @@ structure LabeledInstr =
         fun traverse [] state = state
           | traverse (instr :: rest) { index, offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels, offsetedInstrs } =
               case instr of
-                GOTO { label, instr, byteCount } => let in
+                LABEL label =>
+                  traverse rest {
+                    index = index,
+                    offset = offset,
+                    constPool = constPool,
+                    stackSize = stackSize,
+                    maxStack = maxStack,
+                    maxLocals = maxLocals,
+                    bytes = bytes,
+                    seenLabels = LabelMap.insert (seenLabels, label, (offset, index)),
+                    offsetedInstrs = offsetedInstrs
+                  }
+              | INSTR instr =>
+                let
+                  val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
+                  val storeIndex = Option.getOpt (Instr.storeIndex instr, 0) + 1
+                in
+                  traverse rest {
+                    index = index + 1,
+                    offset = offset + Word8Vector.length opcodes,
+                    constPool = constPool,
+                    stackSize = stackSize + stackDiff,
+                    maxStack = Int.max (maxStack, stackSize + stackDiff),
+                    maxLocals = Int.max (maxLocals, storeIndex),
+                    bytes = Word8Vector.concat [bytes, opcodes],
+                    seenLabels = seenLabels,
+                    offsetedInstrs = (offset, instr) :: offsetedInstrs
+                  }
+                end
+              | GOTO { label, instr, byteCount } => let in
                   case LabelMap.find (seenLabels, label) of
                     SOME (labelOffset, labelIndex) =>
                     let
@@ -333,35 +362,6 @@ structure LabeledInstr =
                           }
                         end
                     end
-                end
-              | LABEL label =>
-                  traverse rest {
-                    index = index,
-                    offset = offset,
-                    constPool = constPool,
-                    stackSize = stackSize,
-                    maxStack = maxStack,
-                    maxLocals = maxLocals,
-                    bytes = bytes,
-                    seenLabels = LabelMap.insert (seenLabels, label, (offset, index)),
-                    offsetedInstrs = offsetedInstrs
-                  }
-              | INSTR instr =>
-                let
-                  val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
-                  val storeIndex = Option.getOpt (Instr.storeIndex instr, 0) + 1
-                in
-                  traverse rest {
-                    index = index + 1,
-                    offset = offset + Word8Vector.length opcodes,
-                    constPool = constPool,
-                    stackSize = stackSize + stackDiff,
-                    maxStack = Int.max (maxStack, stackSize + stackDiff),
-                    maxLocals = Int.max (maxLocals, storeIndex),
-                    bytes = Word8Vector.concat [bytes, opcodes],
-                    seenLabels = seenLabels,
-                    offsetedInstrs = (offset, instr) :: offsetedInstrs
-                  }
                 end
 
         val seed = {
