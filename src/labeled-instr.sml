@@ -299,7 +299,7 @@ structure LabeledInstr =
                         constPool = constPool,
                         (*
                          * We don't have an instruction stackDiff here, so
-                         * we just reset these counter and compensate later.
+                         * we just reset these counters and compensate later.
                          *)
                         stackSize = 0,
                         maxStack = 0,
