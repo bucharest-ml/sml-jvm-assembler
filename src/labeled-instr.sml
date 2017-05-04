@@ -347,7 +347,10 @@ structure LabeledInstr =
                              * above we didn't know the stack diff amount of
                              * an instruction.
                              *)
-                            maxStack = Int.max (maxStack, #maxStack result + stackSize + stackDiff),
+                            maxStack = Int.max (
+                              maxStack,
+                              #maxStack result + stackSize + stackDiff
+                            ),
                             maxLocals = #maxLocals result,
                             bytes = Word8Vector.concat [
                               bytes,
