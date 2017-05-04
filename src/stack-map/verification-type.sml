@@ -74,14 +74,9 @@ structure VerificationType =
       | Reference            => raise Fail "not implemented"
 
     fun compileList constPool vtypes =
-      let
-        fun fold (vtype, (bytes, constPool)) =
-          let
-            val (newBytes, constPool) = compile constPool vtype
-          in
-            (Word8Vector.concat [bytes, newBytes], constPool)
-          end
-      in
-        List.foldl fold (vec [], constPool) vtypes
-      end
+      List.foldMapState vtypes {
+        monoid = Word8Vector.join,
+        step = Fn.swap compile,
+        seed = (vec [], constPool)
+      }
   end

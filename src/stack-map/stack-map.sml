@@ -99,14 +99,9 @@ structure StackMap =
         end
 
     fun compileFrames constPool frames =
-      let
-        fun fold (frame, (bytes, constPool)) =
-          let
-            val (frameBytes, constPool) = compile constPool frame
-          in
-            (Word8Vector.concat [bytes, frameBytes], constPool)
-          end
-      in
-        List.foldl fold (vec [], constPool) frames
-      end
+      List.foldMapState frames {
+        monoid = Word8Vector.join,
+        step = Fn.swap compile,
+        seed = (vec [], constPool)
+      }
   end

@@ -25,6 +25,12 @@ is
   src/util.sig
   src/util.sml
 
+  src/extensions/fn.sig
+  src/extensions/fn.sml
+  src/extensions/list.sig
+  src/extensions/list.sml
+  src/extensions/word8-vector.sml
+
   src/stack-map/frame.sml
   src/stack-map/stack-lang.sml
   src/stack-map/stack-map.sml
