@@ -268,8 +268,12 @@ structure LabeledInstr =
                         index = index + 1,
                         offset = offset + byteCount,
                         constPool = constPool,
-                        stackSize = stackSize,
-                        maxStack = maxStack,
+                        (*
+                         * We don't have an instruction stackDiff here, so
+                         * we just reset these counter and compensate later.
+                         *)
+                        stackSize = 0,
+                        maxStack = 0,
                         maxLocals = maxLocals,
                         bytes = Util.vec [],
                         seenLabels = seenLabels,
@@ -297,7 +301,12 @@ structure LabeledInstr =
                             offset = #offset result, (* TODO: check this is correct *)
                             constPool = constPool,
                             stackSize = stackSize + stackDiff,
-                            maxStack = Int.max (#maxStack result, stackSize + stackDiff),
+                            (*
+                             * Here's where we compensate for the fact that
+                             * above we didn't know the stack diff amount of
+                             * an instruction.
+                             *)
+                            maxStack = Int.max (maxStack, #maxStack result + stackSize + stackDiff),
                             maxLocals = #maxLocals result,
                             seenLabels = #seenLabels result,
                             bytes = Word8Vector.concat [
