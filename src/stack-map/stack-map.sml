@@ -51,24 +51,27 @@ structure StackMap =
     open Util
 
     fun compile constPool frame =
-      case frame of
-        Same { offsetDelta } =>
+      let
+        fun same { offsetDelta } =
           if offsetDelta <= 63
           then (u1 offsetDelta, constPool)
           else (Word8Vector.prepend (0w251, u2 offsetDelta), constPool)
-      | SameLocals1StackItem { offsetDelta, stack } =>
-        let
-          val (vtype, constPool) = VerificationType.compile constPool stack
-        in
-          if offsetDelta <= 63
-          then (Word8Vector.concat [u1 (offsetDelta + 64), vtype], constPool)
-          else (Word8Vector.concat [u1 247, u2 offsetDelta, vtype], constPool)
-        end
-      | Chop { minusLocals, offsetDelta } =>
+
+        fun sameLocals1StackItem { offsetDelta, stack } =
+          let
+            val (vtype, constPool) = VerificationType.compile constPool stack
+          in
+            if offsetDelta <= 63
+            then (Word8Vector.concat [u1 (offsetDelta + 64), vtype], constPool)
+            else (Word8Vector.concat [u1 247, u2 offsetDelta, vtype], constPool)
+          end
+
+        fun chop { minusLocals, offsetDelta } =
           if minusLocals < 1 orelse minusLocals > 3
           then raise Fail ("chop frame with invalid minusLocals value: " ^ Int.toString minusLocals)
           else (Word8Vector.concat [u1 (251 - minusLocals), u2 offsetDelta], constPool)
-      | Append { extraLocals, offsetDelta, locals } =>
+
+        fun append { extraLocals, offsetDelta, locals } =
           if extraLocals < 1 orelse extraLocals > 3
           then raise Fail ("append frame with invalid extraLocals value: " ^ Int.toString extraLocals)
           else
@@ -82,21 +85,31 @@ structure StackMap =
             in
               (bytes, constPool)
             end
-      | Full { offsetDelta, locals, stack } =>
-        let
-          val (localBytes, constPool) = VerificationType.compileList constPool locals
-          val (stackBytes, constPool) = VerificationType.compileList constPool stack
-          val bytes = Word8Vector.concat [
-            u1 255,
-            u2 offsetDelta,
-            u2 (List.length locals),
-            localBytes,
-            u2 (List.length stack),
-            stackBytes
-          ]
-        in
-          (bytes, constPool)
-        end
+
+        fun full { offsetDelta, locals, stack } =
+          let
+            val (localBytes, constPool) = VerificationType.compileList constPool locals
+            val (stackBytes, constPool) = VerificationType.compileList constPool stack
+            val bytes = Word8Vector.concat [
+              u1 255,
+              u2 offsetDelta,
+              u2 (List.length locals),
+              localBytes,
+              u2 (List.length stack),
+              stackBytes
+            ]
+          in
+            (bytes, constPool)
+          end
+
+      in
+        case frame of
+          Same a => same a
+        | SameLocals1StackItem a => sameLocals1StackItem a
+        | Chop a => chop a
+        | Append a => append a
+        | Full a => full a
+      end
 
     fun compileFrames constPool frames =
       List.foldMapState frames {
