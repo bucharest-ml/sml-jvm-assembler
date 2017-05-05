@@ -345,13 +345,13 @@ structure LabeledInstr =
                       index = 0,
                       offset = 0,
                       stackSize = 0,
-                      seenLabels = LabelMap.empty,
 
                       (*
                        * The following are values that will be read on return,
                        * so we have to put the real values.
                        *)
                       constPool = constPool,
+                      seenLabels = #seenLabels result,
                       (*
                        * Here's where we compensate for the fact that above we
                        * didn't know the stack diff amount of an instruction.
