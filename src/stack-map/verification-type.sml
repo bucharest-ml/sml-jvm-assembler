@@ -15,6 +15,20 @@ structure VerificationType =
     | UninitializedThis
     | Reference
 
+    fun toString t =
+      case t of
+        Top => "Top"
+      | Integer => "Integer"
+      | Float => "Float"
+      | Long => "Long"
+      | Double => "Double"
+      | Null => "Null"
+      | Array _ => "Array"
+      | Object _ => "Object"
+      | Uninitialized _ => "Uninitialized"
+      | UninitializedThis => "UninitializedThis"
+      | Reference => "Reference"
+
     fun isTop Top = true
       | isTop _ = false
 
