@@ -8,97 +8,155 @@ structure StackLang =
     | Load of local_index * VerificationType.t
     | Store of local_index * VerificationType.t
     | Local of local_index * VerificationType.t
-    | Branch of { targetOffset : int }
+    | Branch of { targetOffset : int, fallsThrough : bool }
 
     exception StackUnderflow
+    exception UnassignedLocal
+
+    fun toString t =
+      case t of
+        Push vtype => "Push " ^ VerificationType.toString vtype
+      | Pop vtype => "Pop " ^ VerificationType.toString vtype
+      | Load (index, vtype) => "Load ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Store (index, vtype) => "Store ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Local (index, vtype) => "Local ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Branch { targetOffset, fallsThrough } =>
+          "Branch { targetOffset = "^ Int.toString targetOffset ^", fallsThrough = "^ Bool.toString fallsThrough ^" }"
 
     fun interpret instrs =
       let
+        fun mergeFrames prev curr =
+          let
+            val { stack = prevStack, locals = prevLocals } = prev
+            val { stack = currStack, locals = currLocals } = curr
+          in
+            if List.length prevStack <> List.length currStack
+            then raise Fail "mergeFrames: different stack lengths"
+            else
+              let
+                val mergedLocals =
+                  ListPair.map (Fn.uncurry VerificationType.leastUpperBound) (prevLocals, currLocals)
+              in
+                {
+                  stack = currStack,
+                  locals = mergedLocals
+                }
+              end
+          end
+
         fun generateFrame instrs state =
           let
             (* TODO: handle longs and doubles which occupy two slots *)
-            fun fold (instr, { stack, locals, frameMap }) =
+            fun fold (instr, { stack, locals, frameMap, fallsThrough }) =
               case instr of
                 Push vType => {
                   stack = vType :: stack,
                   locals = locals,
-                  frameMap = frameMap
+                  frameMap = frameMap,
+                  fallsThrough = true
                 }
               | Pop vType => {
                   stack = List.tl stack handle Empty => raise StackUnderflow,
                   locals = locals,
-                  frameMap = frameMap
+                  frameMap = frameMap,
+                  fallsThrough = true
                 }
               | Load (index, vType) => {
                   stack = vType :: stack,
                   locals = locals,
-                  frameMap = frameMap
+                  frameMap = frameMap,
+                  fallsThrough = true
                 }
               | Local (index, vType) => {
                   stack = stack,
-                  locals = List.update (locals, index, vType),
-                  frameMap = frameMap
+                  locals = List.update (locals, index, vType) handle Subscript => raise UnassignedLocal,
+                  frameMap = frameMap,
+                  fallsThrough = true
                 }
               | Store (index, vType) => {
                   stack = List.tl stack handle Empty => raise StackUnderflow,
-                  locals = List.update (locals, index, vType),
-                  frameMap = frameMap
+                  locals = List.update (locals, index, vType) handle Subscript => raise UnassignedLocal,
+                  frameMap = frameMap,
+                  fallsThrough = true
                 }
-              | Branch { targetOffset } =>
+              | Branch { targetOffset, fallsThrough } =>
                 let
                   val frame = { stack = stack, locals = locals }
-                  val frames =
+                  val mergedFrame =
                     case IntBinaryMap.find (frameMap, targetOffset) of
-                      NONE => { offset = NONE, frames = [frame] }
-                    | SOME { offset, frames } => { offset = offset, frames = frame :: frames }
+                      NONE => { offset = NONE, frame = frame, isBranchTarget = true }
+                    | SOME { offset, frame = prevFrame, isBranchTarget } => {
+                        offset = offset,
+                        frame = mergeFrames prevFrame frame,
+                        isBranchTarget = true
+                      }
                 in
                   {
                     stack = stack,
                     locals = locals,
-                    frameMap = IntBinaryMap.insert (frameMap, targetOffset, frames)
+                    frameMap = IntBinaryMap.insert (frameMap, targetOffset, mergedFrame),
+                    fallsThrough = fallsThrough
                   }
                 end
-
           in
             List.foldl fold state instrs
           end
 
         fun eval instrss =
           let
-            fun fold (index, { offset, instrs }, { stack, locals, frameMap }) =
+            fun fold (index, { offset, instrs }, { stack, locals, frameMap, fallsThrough }) =
               let
                 val frame = { stack = stack, locals = locals }
-                val frames =
+                val mergedFrame =
                   case IntBinaryMap.find (frameMap, index) of
-                    NONE => { offset = SOME offset, frames = [frame] }
-                  | SOME { offset = NONE, frames } => { offset = SOME offset, frames = frame :: frames }
-                  | SOME { offset, frames } => { offset = offset, frames = frame :: frames }
-                val frameMap = IntBinaryMap.insert (frameMap, index, frames)
+                    NONE => {
+                      offset = SOME offset,
+                      frame = frame,
+                      isBranchTarget = false
+                    }
+                  | SOME { offset = NONE, frame = prevFrame, isBranchTarget } => {
+                      offset = SOME offset,
+                      frame = mergeFrames prevFrame frame,
+                      isBranchTarget = isBranchTarget
+                    }
+                  | SOME { offset, frame = prevFrame, isBranchTarget } => {
+                      offset = offset,
+                      frame = mergeFrames prevFrame frame,
+                      isBranchTarget = isBranchTarget
+                    }
+                val frameMap = IntBinaryMap.insert (frameMap, index, mergedFrame)
               in
                 generateFrame instrs {
-                  stack = stack,
+                  stack = if fallsThrough then stack else [],
                   locals = locals,
-                  frameMap = frameMap
+                  frameMap = frameMap,
+                  fallsThrough = true
                 }
               end
 
             val seed = {
               stack = [],
               locals = [VerificationType.Reference, VerificationType.Top, VerificationType.Top], (* TODO *)
-              frameMap = IntBinaryMap.empty
+              frameMap = IntBinaryMap.empty,
+              fallsThrough = true
             }
           in
             List.foldli fold seed instrss
           end
 
-        fun unwrapOffset item =
+        fun unwrapOffset (index, item) =
           case item of
-            { offset = NONE, frames } => raise Fail "bug: NONE offset"
-          | { offset = SOME offset, frames } => { offset = offset, frames = frames }
+            { offset = NONE, ... } => raise Fail ("bug: NONE offset at index: " ^ Int.toString index)
+          | { offset = SOME offset, frame, isBranchTarget } => {
+              offset = offset,
+              frame = frame,
+              isBranchTarget = isBranchTarget
+            }
       in
-        List.map unwrapOffset (IntBinaryMap.listItems (#frameMap (eval instrs)))
+        List.mapi unwrapOffset (IntBinaryMap.listItems (#frameMap (eval instrs)))
       end
 
+    (* TODO: update function *)
     fun compile frameSets =
       let
         fun compile ({ offset, frames }, { prevLocals, compiled, lastOffset }) =
@@ -106,7 +164,6 @@ structure StackLang =
             val isBranchTarget = List.length frames > 1
             val offsetDelta = offset - lastOffset
           in
-            (* TODO: intersect frames *)
             case List.hd frames of
               { stack = [], locals } =>
               let
@@ -182,18 +239,18 @@ structure StackLang =
     fun compileCompact frameSets =
       case frameSets of
         [] => []
-      | { frames = [{ locals, stack }], offset } :: frameSets =>
+      | { frame = { locals, stack }, offset, isBranchTarget } :: frameSets =>
         let
-          fun compile ({ offset, frames }, state as { prevLocals, compiled, prevOffset }) =
+          fun compile ({ offset, frame, isBranchTarget }, state as { prevLocals, compiled, prevOffset }) =
             let
-              val isBranchTarget = List.length frames > 1
+              (* val isBranchTarget = List.length frames > 1 *)
               val offsetDelta = offset - (if prevOffset = 0 then prevOffset else prevOffset + 1)
             in
               if not isBranchTarget
               then state
               else
                 (* TODO: intersect frames *)
-                case List.hd frames of
+                case frame of
                   { stack = [], locals } =>
                   let
                     val stackMapFrame =
@@ -208,11 +265,21 @@ structure StackLang =
                           offsetDelta = offsetDelta,
                           minusLocals = n
                         }
-                      | Frame.Append n => StackMap.Append {
-                          offsetDelta = offsetDelta,
-                          extraLocals = n,
-                          locals = List.drop (locals, List.length locals - n)
-                        }
+                      | Frame.Append n =>
+                        let
+                          val locals =
+                            case List.drop (locals, List.length locals - n) of
+                              [a, VerificationType.Top, VerificationType.Top] => [a]
+                            | [a, b, VerificationType.Top] => [a, b]
+                            | [a, VerificationType.Top] => [a]
+                            | other => other
+                        in
+                          StackMap.Append {
+                            offsetDelta = offsetDelta,
+                            extraLocals = List.length locals,
+                            locals = locals
+                          }
+                        end
                   in
                     {
                       prevLocals = locals,

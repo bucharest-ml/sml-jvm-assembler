@@ -196,13 +196,61 @@ structure Main =
             iload_1,
             imul,
             istore_2,
-            iinc (0w1, Word8.fromInt ~1),
+            iinc (0w1, ~ 0w1),
             goto "enter-while",
             label "exit-while",
             getstatic java.lang.System.out,
             iload_2,
             invokestatic java.lang.Integer.toString,
             invokevirtual java.io.PrintStream.println,
+            return
+          ] end
+        }
+      ]
+    }
+
+    val nestedLoops = Method.from {
+      name = "main",
+      accessFlags = [Method.Flag.PUBLIC, Method.Flag.STATIC],
+      descriptor = Descriptor.Method {
+        return = Descriptor.Void,
+        params = [
+          Descriptor.Array (Descriptor.Object (ClassName.fromString "java/lang/String"))
+        ]
+      },
+      attributes = [
+        Attr.Code {
+          exceptionTable = [],
+          attributes = [],
+          code = let open Instr in [
+            iconst_0,
+            istore_1,
+          label "goto-2",
+            iload_1,
+            bipush 0w10,
+            if_icmpge "exit",
+            iconst_0,
+            istore_2,
+          label "goto-1",
+            iload_2,
+            bipush 0w10,
+            if_icmpge "iinc",
+            getstatic java.lang.System.out,
+            iload_1,
+            iload_2,
+            iadd,
+            invokestatic java.lang.Integer.toString,
+            invokevirtual java.io.PrintStream.println,
+            iinc (0w2, 0w1),
+            goto "goto-1",
+          label "iinc",
+            iinc (0w1, 0w1),
+            iload_2,
+            iconst_3,
+            iadd,
+            pop,
+            goto "goto-2",
+          label "exit",
             return
           ] end
         }
@@ -226,7 +274,7 @@ structure Main =
         }
       ],
       (* methods = [main, printString, bootstrap] *)
-      methods = [factorial]
+      methods = [nestedLoops]
     }
 
     val trim =
@@ -257,7 +305,7 @@ structure Main =
 
     fun stackMap () =
       let
-        val { attributes = [Attr.Code { code, ... }], ... } = factorial
+        val { attributes = [Attr.Code { code, ... }], ... } = nestedLoops
         val { offsetedInstrs, ... } = Instr.compileList ConstPool.empty code
       in
         StackLang.compileCompact

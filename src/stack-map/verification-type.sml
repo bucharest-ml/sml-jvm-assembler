@@ -29,6 +29,15 @@ structure VerificationType =
       | UninitializedThis => "UninitializedThis"
       | Reference => "Reference"
 
+    fun leastUpperBound a b =
+      case (a, b) of
+        (Top, _) => Top
+      | (_, Top) => Top
+      | (a, b) =>
+          if a = b
+          then a
+          else raise Fail "not implemented: leastUpperBound" (* TODO *)
+
     fun isTop Top = true
       | isTop _ = false
 

@@ -22,7 +22,7 @@ structure Verifier =
           | fconst_2 => raise Fail "not implemented: fconst_2"
           | dconst_0 => raise Fail "not implemented: dconst_0"
           | dconst_1 => raise Fail "not implemented: dconst_1"
-          | bipush word => raise Fail "not implemented: bipush"
+          | bipush word => [Push VerificationType.Integer]
           | sipush short => raise Fail "not implemented: sipush"
           | ldc const => [Push (VerificationType.fromConst const)]
           | iload index => raise Fail "not implemented: iload"
@@ -91,7 +91,7 @@ structure Verifier =
           | bastore => raise Fail "not implemented: bastore"
           | castore => raise Fail "not implemented: castore"
           | sastore => raise Fail "not implemented: sastore"
-          | pop => raise Fail "not implemented: pop"
+          | pop => [Pop VerificationType.Top]
           | pop2 => raise Fail "not implemented: pop2"
           | dup => raise Fail "not implemented: dup"
           | dup_x1 => raise Fail "not implemented: dup_x1"
@@ -100,7 +100,11 @@ structure Verifier =
           | dup2_x1 => raise Fail "not implemented: dup2_x1"
           | dup2_x2 => raise Fail "not implemented: dup2_x2"
           | swap => raise Fail "not implemented: swap"
-          | iadd => raise Fail "not implemented: iadd"
+          | iadd => [
+              Pop VerificationType.Integer,
+              Pop VerificationType.Integer,
+              Push VerificationType.Integer
+            ]
           | ladd => raise Fail "not implemented: ladd"
           | fadd => raise Fail "not implemented: fadd"
           | dadd => raise Fail "not implemented: dadd"
@@ -168,16 +172,20 @@ structure Verifier =
           | ifgt offset => raise Fail "not implemented: ifgt"
           | ifle offset => [
               Pop VerificationType.Integer,
-              Branch { targetOffset = offset }
+              Branch { targetOffset = offset, fallsThrough = true }
             ]
           | if_icmpeq offset => raise Fail "not implemented: if_icmpeq"
           | if_icmpne offset => [
               Pop VerificationType.Integer,
               Pop VerificationType.Integer,
-              Branch { targetOffset = offset }
+              Branch { targetOffset = offset, fallsThrough = true }
             ]
           | if_icmplt offset => raise Fail "not implemented: if_icmplt"
-          | if_icmpge offset => raise Fail "not implemented: if_icmpge"
+          | if_icmpge offset => [
+              Pop VerificationType.Integer,
+              Pop VerificationType.Integer,
+              Branch { targetOffset = offset, fallsThrough = true }
+            ]
           | if_icmpgt offset => raise Fail "not implemented: if_icmpgt"
           | if_icmple offset => raise Fail "not implemented: if_icmple"
           | if_acmpeq offset => raise Fail "not implemented: if_acmpeq"
@@ -222,7 +230,7 @@ structure Verifier =
           | instanceof index => raise Fail "not implemented: instanceof"
           | monitorenter => raise Fail "not implemented: monitorenter"
           | monitorexit => raise Fail "not implemented: monitorexit"
-          | goto offset => [Branch { targetOffset = offset }]
+          | goto offset => [Branch { targetOffset = offset, fallsThrough = false }]
           | jsr offset => raise Fail "not implemented: jsr"
           | ret index => raise Fail "not implemented: ret"
           | tableswitch => raise Fail "not implemented: tableswitch"
