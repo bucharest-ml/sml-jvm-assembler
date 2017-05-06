@@ -72,27 +72,29 @@ structure Attr =
 
         fun compileAttributes constPool stackMapTable attributes =
           let
-            fun fold (attr, { bytes, length, constPool, seenStackMapTable }) =
-              let
-                val (attrBytes, constPool) = compile constPool attr
-              in
-                {
-                  bytes = Word8Vector.concat [bytes, attrBytes],
-                  length = length + 1,
-                  constPool = constPool,
-                  seenStackMapTable = seenStackMapTable orelse isStackMapTable attr
-                }
-              end
+            open List.Op.<&> infixr <&>
 
-            val seed = {
-              bytes = vec [],
-              length = 0,
-              constPool = constPool,
-              seenStackMapTable = false
+            val detectStackMapTable = {
+              seed = false,
+              step = fn (attr, seen) => seen orelse isStackMapTable attr
             }
 
-            val { bytes, length, constPool, seenStackMapTable } =
-              List.foldl fold seed attributes
+            val compileAttr = {
+              seed = { bytes = vec [], length = 0, constPool = constPool },
+              step = fn (attr, { bytes, length, constPool }) =>
+                let
+                  val (attrBytes, constPool) = compile constPool attr
+                in
+                  {
+                    bytes = Word8Vector.concat [bytes, attrBytes],
+                    length = length + 1,
+                    constPool = constPool
+                  }
+                end
+            }
+
+            val (seenStackMapTable, { bytes, length, constPool }) =
+              List.stepl (detectStackMapTable <&> compileAttr) attributes
           in
             if seenStackMapTable
             then (Word8Vector.concat [u2 length, bytes], constPool)
