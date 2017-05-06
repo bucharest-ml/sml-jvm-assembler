@@ -26,7 +26,7 @@ structure Attr =
         exceptionTable : ExceptionInfo.t list,
         attributes : t list
       }
-    | StackMapTable of (Instr.offset * Instr.t) list
+    | StackMapTable of StackMap.frame list
     | Exceptions of ClassName.t list
     | BootstrapMethods of ConstPool.bootstrap_method list
     | InnerClasses
@@ -48,6 +48,9 @@ structure Attr =
     | LocalVariableTypeTable
     | Deprecated
 
+    fun isStackMapTable attr =
+      case attr of StackMapTable _ => true | _ => false
+
     fun compile constPool attr =
       case attr of
         Code code => compileCode constPool code
@@ -58,7 +61,7 @@ structure Attr =
       | Signature typeSignature => compileSignature constPool typeSignature
       | SourceFile value => compileSourceFile constPool value
       | BootstrapMethods methods => compileBootstrapMethods constPool methods
-      | StackMapTable instrs => compileStackMapTable constPool instrs
+      | StackMapTable frames => compileStackMapTable constPool frames
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
@@ -67,36 +70,46 @@ structure Attr =
         fun compileExceptions constPool exceptionTable =
           (u2 0, constPool) (* TODO: add exceptions *)
 
-        fun compileAttributes constPool attributes =
+        fun compileAttributes constPool stackMapTable attributes =
           let
-            fun fold (attr, { bytes, length, constPool }) =
+            fun fold (attr, { bytes, length, constPool, seenStackMapTable }) =
               let
                 val (attrBytes, constPool) = compile constPool attr
               in
                 {
                   bytes = Word8Vector.concat [bytes, attrBytes],
                   length = length + 1,
-                  constPool = constPool
+                  constPool = constPool,
+                  seenStackMapTable = seenStackMapTable orelse isStackMapTable attr
                 }
               end
 
             val seed = {
               bytes = vec [],
               length = 0,
-              constPool = constPool
+              constPool = constPool,
+              seenStackMapTable = false
             }
 
-            val { bytes, length, constPool } = List.foldl fold seed attributes
-            val bytes = Word8Vector.concat [u2 length, bytes]
+            val { bytes, length, constPool, seenStackMapTable } =
+              List.foldl fold seed attributes
           in
-            (bytes, constPool)
+            if seenStackMapTable
+            then (Word8Vector.concat [u2 length, bytes], constPool)
+            else
+              let
+                val (attrBytes, constPool) = compile constPool stackMapTable
+                val bytes = Word8Vector.concat [bytes, attrBytes]
+              in
+                (Word8Vector.concat [u2 (length + 1), bytes], constPool)
+              end
           end
 
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "Code"
         (* TODO: generate and add StackMapTable only if version >= 50 *)
-        val (instrBytes, constPool, stackMapTable) = compileInstructions constPool code
+        val (instrBytes, constPool, stackMapAttr) = compileInstructions constPool code
         val (exceptionBytes, constPool) = compileExceptions constPool exceptionTable
-        val (attributeBytes, constPool) = compileAttributes constPool (stackMapTable :: attributes)
+        val (attributeBytes, constPool) = compileAttributes constPool stackMapAttr attributes
         val attributeLength =
           Word8Vector.length instrBytes +
           Word8Vector.length exceptionBytes +
@@ -115,7 +128,10 @@ structure Attr =
     and compileInstructions constPool code =
       let
         val result = LabeledInstr.compileList constPool code
-        val stackMapTable = StackMapTable (#offsetedInstrs result)
+        val stackMapFrames =
+          StackLang.compileCompact
+            (StackLang.interpret (Verifier.verify (#offsetedInstrs result)))
+        val stackMapAttr = StackMapTable stackMapFrames
         val bytes = Word8Vector.concat [
           u2 (#maxStack result),
           u2 (#maxLocals result),
@@ -123,7 +139,7 @@ structure Attr =
           (#bytes result)
         ]
       in
-        (bytes, #constPool result, stackMapTable)
+        (bytes, #constPool result, stackMapAttr)
       end
 
     and compileConstantValue constPool value =
@@ -240,9 +256,8 @@ structure Attr =
         (bytes, constPool)
       end
 
-    and compileStackMapTable constPool instrs =
+    and compileStackMapTable constPool frames =
       let
-        val frames = StackLang.compileCompact (StackLang.interpret (Verifier.verify instrs))
         val (stackMapBytes, constPool) = StackMap.compileFrames constPool frames
         val (attrIndex, constPool) = ConstPool.withUtf8 constPool "StackMapTable"
         val attributeLength = 2 + Word8Vector.length stackMapBytes

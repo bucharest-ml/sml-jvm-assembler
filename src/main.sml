@@ -221,7 +221,22 @@ structure Main =
       attributes = [
         Attr.Code {
           exceptionTable = [],
-          attributes = [],
+          attributes = [
+            (* Attr.StackMapTable [
+              StackMap.Append {
+                offsetDelta = 2,
+                extraLocals = 1,
+                locals = [VerificationType.Integer]
+              },
+              StackMap.Append {
+                offsetDelta = 7,
+                extraLocals = 1,
+                locals = [VerificationType.Integer]
+              },
+              StackMap.Same { offsetDelta = 23 },
+              StackMap.Chop { minusLocals = 1, offsetDelta = 9 }
+            ] *)
+          ],
           code = let open Instr in [
             iconst_0,
             istore_1,
