@@ -35,8 +35,8 @@ structure List : LIST =
             open & infixr &
 
             fun <&> (f : ('a, 's) stepper, g : ('a, 't) stepper) = {
-              step = #step f & #step g,
-              seed = (#seed f, #seed g)
+              seed = (#seed f, #seed g),
+              step = #step f & #step g
             }
           end
       end
