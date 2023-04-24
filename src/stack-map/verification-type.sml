@@ -2,6 +2,7 @@ structure VerificationType =
   struct
     open Util
 
+    (* See: JVMS18 / $4.10.1.2 / Verification Type System *)
     datatype t =
       Top
     | Integer
@@ -29,6 +30,9 @@ structure VerificationType =
       | UninitializedThis => "UninitializedThis"
       | Reference => "Reference"
 
+    (**
+     * See: Java Bytecode Verification — An Overview, p7
+     *)
     fun leastUpperBound a b =
       case (a, b) of
       | (Top, _) => Top
