@@ -1,0 +1,12 @@
+library (0.1.0)
+  library (lib.cm)
+  source (-)
+is
+  $BUCHAREST-ML/sml-test/lib.cm
+
+  lib.cm
+
+  test (
+    all-suites.sml
+    frame-suite.sml
+  )
