@@ -8,7 +8,7 @@ structure LabeledInstr =
     type label = string
 
     datatype t =
-      INSTR of Instr.t
+    | INSTR of Instr.t
     | LABEL of label
     | GOTO of {
         label : label,
@@ -223,7 +223,7 @@ structure LabeledInstr =
 
     fun toString instr =
       case instr of
-        INSTR instr => "INSTR " ^ Instr.toString instr
+      | INSTR instr => "INSTR " ^ Instr.toString instr
       | LABEL label => "LABEL " ^ label
       | GOTO { label, instr, ... } =>
           "GOTO (" ^ label ^ ", " ^ Instr.toString (instr 0) ^ ")"
@@ -279,7 +279,7 @@ structure LabeledInstr =
             val { maxLocals, bytes, seenLabels, offsetedInstrs, ... } = state
           in
             case LabelMap.find (seenLabels, label) of
-              SOME (labelOffset, labelIndex) =>
+            | SOME (labelOffset, labelIndex) =>
               let
                 val offsetedInstr = instr labelIndex
                 val instr = instr (labelOffset - offset)
@@ -321,7 +321,7 @@ structure LabeledInstr =
                 }
               in
                 case LabelMap.find (#seenLabels result, label) of
-                  NONE => raise Fail ("undefined label: " ^ label)
+                | NONE => raise Fail ("undefined label: " ^ label)
                 | SOME (labelOffset, labelIndex) =>
                   let
                     (*
@@ -378,7 +378,7 @@ structure LabeledInstr =
 
         and traverse instrs state =
           case instrs of
-            [] => state
+          | [] => state
           | (LABEL label :: rest) => traverseLabel label state rest
           | (INSTR instr :: rest) => traverseInstr instr state rest
           | (GOTO goto :: rest) => traverseGoto goto state rest

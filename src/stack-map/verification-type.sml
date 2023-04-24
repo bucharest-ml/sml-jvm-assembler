@@ -17,7 +17,7 @@ structure VerificationType =
 
     fun toString t =
       case t of
-        Top => "Top"
+      | Top => "Top"
       | Integer => "Integer"
       | Float => "Float"
       | Long => "Long"
@@ -31,7 +31,7 @@ structure VerificationType =
 
     fun leastUpperBound a b =
       case (a, b) of
-        (Top, _) => Top
+      | (Top, _) => Top
       | (_, Top) => Top
       | (a, b) =>
           if a = b
@@ -43,7 +43,7 @@ structure VerificationType =
 
     fun fromSimple simple =
       case simple of
-        Descriptor.Bool => Integer
+      | Descriptor.Bool => Integer
       | Descriptor.Byte => Integer
       | Descriptor.Char => Integer
       | Descriptor.Double => Double
@@ -56,24 +56,24 @@ structure VerificationType =
 
     fun methodReturn descriptor =
       case descriptor of
-        Descriptor.Method { return = Descriptor.Void, ... } => Top
+      | Descriptor.Method { return = Descriptor.Void, ... } => Top
       | Descriptor.Method { return = Descriptor.Type simple, ... } => fromSimple simple
       | _ => raise Fail "illegal: descriptor is not a method"
 
     fun methodParams descriptor =
       case descriptor of
-        Descriptor.Method { params, ... } => List.map fromSimple params
+      | Descriptor.Method { params, ... } => List.map fromSimple params
       | _ => raise Fail "illegal: descriptor is not a method"
 
     fun fromDescriptor descriptor =
       case descriptor of
-        Descriptor.Raw text => raise Fail "not implemented"
+      | Descriptor.Raw text => raise Fail "not implemented"
       | Descriptor.Method { params, return } => raise Fail "not implemented"
       | Descriptor.Field simple => fromSimple simple
 
     fun fromConst const =
       case const of
-        Const.Integer _ => Integer
+      | Const.Integer _ => Integer
       | Const.Float _ => Float
       | Const.Long _ => Long
       | Const.Double _ => Double
@@ -84,7 +84,7 @@ structure VerificationType =
 
     fun compile constPool vtype =
       case vtype of
-        Top                  => (u1 0, constPool)
+      | Top                  => (u1 0, constPool)
       | Integer              => (u1 1, constPool)
       | Float                => (u1 2, constPool)
       | Long                 => (u1 4, constPool)

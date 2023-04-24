@@ -3,7 +3,7 @@ structure StackLang =
     type local_index = int
 
     datatype t =
-      Push of VerificationType.t
+    | Push of VerificationType.t
     | Pop of VerificationType.t
     | Load of local_index * VerificationType.t
     | Store of local_index * VerificationType.t
@@ -15,7 +15,7 @@ structure StackLang =
 
     fun toString t =
       case t of
-        Push vtype => "Push " ^ VerificationType.toString vtype
+      | Push vtype => "Push " ^ VerificationType.toString vtype
       | Pop vtype => "Pop " ^ VerificationType.toString vtype
       | Load (index, vtype) => "Load ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
       | Store (index, vtype) => "Store ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
@@ -49,7 +49,7 @@ structure StackLang =
             (* TODO: handle longs and doubles which occupy two slots *)
             fun fold (instr, { stack, locals, frameMap, fallsThrough }) =
               case instr of
-                Push vType => {
+              | Push vType => {
                   stack = vType :: stack,
                   locals = locals,
                   frameMap = frameMap,
@@ -109,7 +109,7 @@ structure StackLang =
                 val frame = { stack = stack, locals = locals }
                 val mergedFrame =
                   case IntBinaryMap.find (frameMap, index) of
-                    NONE => {
+                  | NONE => {
                       offset = SOME offset,
                       frame = frame,
                       isBranchTarget = false
@@ -146,7 +146,7 @@ structure StackLang =
 
         fun unwrapOffset (index, item) =
           case item of
-            { offset = NONE, ... } => raise Fail ("bug: NONE offset at index: " ^ Int.toString index)
+          | { offset = NONE, ... } => raise Fail ("bug: NONE offset at index: " ^ Int.toString index)
           | { offset = SOME offset, frame, isBranchTarget } => {
               offset = offset,
               frame = frame,
@@ -165,7 +165,7 @@ structure StackLang =
             val offsetDelta = offset - lastOffset
           in
             case List.hd frames of
-              { stack = [], locals } =>
+            | { stack = [], locals } =>
               let
                 val localsSize = List.length locals
                 val lastLocalsSize = List.length prevLocals
@@ -238,7 +238,7 @@ structure StackLang =
 
     fun compileCompact frameSets =
       case frameSets of
-        [] => []
+      | [] => []
       | { frame = { locals, stack }, offset, isBranchTarget } :: frameSets =>
         let
           fun compile ({ offset, frame, isBranchTarget }, state as { prevLocals, compiled, prevOffset }) =

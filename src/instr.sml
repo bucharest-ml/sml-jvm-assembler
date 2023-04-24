@@ -1,7 +1,7 @@
 structure ArrayType =
   struct
     datatype t =
-      BOOLEAN
+    | BOOLEAN
     | CHAR
     | FLOAT
     | DOUBLE
@@ -12,7 +12,7 @@ structure ArrayType =
 
     fun compile t : Word8.word =
       case t of
-        BOOLEAN => 0w4
+      | BOOLEAN => 0w4
       | CHAR => 0w5
       | FLOAT => 0w6
       | DOUBLE => 0w7
@@ -30,7 +30,7 @@ structure Instr =
     type index = Word8.word
 
     datatype t =
-      nop (* Constants *)
+    | nop (* Constants *)
     | aconst_null
     | iconst_m1
     | iconst_0
@@ -279,7 +279,7 @@ structure Instr =
 
     fun storeIndex instr =
       case instr of
-        istore i => SOME (Word8.toInt i)
+      | istore i => SOME (Word8.toInt i)
       | lstore i => SOME (Word8.toInt i)
       | fstore i => SOME (Word8.toInt i)
       | dstore i => SOME (Word8.toInt i)
@@ -308,7 +308,7 @@ structure Instr =
 
     fun compile constPool instr =
       case instr of
-        nop               => (vec [0wx0], 0, constPool)
+      | nop               => (vec [0wx0], 0, constPool)
       | aconst_null       => (vec [0wx1], 1, constPool)
       | iconst_m1         => (vec [0wx2], 1, constPool)
       | iconst_0          => (vec [0wx3], 1, constPool)
@@ -345,7 +345,7 @@ structure Instr =
             end
         in
           case const of
-            Const.Integer a      => ldc ConstPool.withInteger a
+          | Const.Integer a      => ldc ConstPool.withInteger a
           | Const.Float a        => ldc ConstPool.withFloat a
           | Const.String a       => ldc ConstPool.withString a
           | Const.Class a        => ldc ConstPool.withClass a
@@ -673,7 +673,7 @@ structure Instr =
 
     fun toString instr =
       case instr of
-        nop               => "nop"
+      | nop               => "nop"
       | aconst_null       => "aconst_null"
       | iconst_m1         => "iconst_m1"
       | iconst_0          => "iconst_0"

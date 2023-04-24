@@ -6,7 +6,7 @@ structure ExceptionInfo =
 structure ConstantValue =
   struct
     datatype t =
-      Integer of Integer.t
+    | Integer of Integer.t
     | Long of Long.t
     | Float of Float.t
     | Double of Double.t
@@ -19,7 +19,7 @@ structure Attr =
     open Util
 
     datatype t =
-      Custom
+    | Custom
     | ConstantValue of ConstantValue.t
     | Code of {
         code : LabeledInstr.t list,
@@ -53,7 +53,7 @@ structure Attr =
 
     fun compile constPool attr =
       case attr of
-        Code code => compileCode constPool code
+      | Code code => compileCode constPool code
       | ConstantValue value => compileConstantValue constPool value
       | Exceptions exceptions => compileExceptions constPool exceptions
       | Synthetic => compileSynthetic constPool
@@ -149,7 +149,7 @@ structure Attr =
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "ConstantValue"
         val (constValueIndex, constPool) =
           case value of
-            ConstantValue.Integer value => raise Fail "not implemented"
+          | ConstantValue.Integer value => raise Fail "not implemented"
           | ConstantValue.Long value => raise Fail "not implemented"
           | ConstantValue.Float value => raise Fail "not implemented"
           | ConstantValue.Double value => raise Fail "not implemented"
@@ -275,7 +275,7 @@ structure Attr =
 
     fun minimumVersion attr =
       case attr of
-        Custom                               => { major = 45, minor = 3 }
+      | Custom                               => { major = 45, minor = 3 }
       | SourceFile _                         => { major = 45, minor = 3 }
       | InnerClasses                         => { major = 45, minor = 3 }
       | ConstantValue _                      => { major = 45, minor = 3 }

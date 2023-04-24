@@ -1,7 +1,7 @@
 structure Frame =
   struct
     datatype diff =
-      Same
+    | Same
     | Full
     | Chop of int
     | Append of int
@@ -25,18 +25,18 @@ structure Frame =
           if n = 3
           then
             case (xs, ys) of
-              ([], []) => Append n
+            | ([], []) => Append n
             | _ => Full
           else
             case (xs, ys) of
-              ([], []) => Append n
+            | ([], []) => Append n
             | ([], _ :: ys) => append (n + 1) [] ys
             | (VerificationType.Top :: xs, _ :: ys) => append (n + 1) xs ys
             | _ => Full
 
         fun same xs ys =
           case (xs, ys) of
-            ([], []) => Same
+          | ([], []) => Same
           | ([], _ :: ys) => append 1 [] ys
           | (_ :: xs, []) => chop 1 xs []
           | (x :: xs, y :: ys) =>
@@ -44,7 +44,7 @@ structure Frame =
               then same xs ys
               else
                 case (x, y) of
-                  (VerificationType.Top, _) => append 1 xs ys
+                | (VerificationType.Top, _) => append 1 xs ys
                 | (_, VerificationType.Top) => chop 1 xs ys
                 | _ => Full
       in

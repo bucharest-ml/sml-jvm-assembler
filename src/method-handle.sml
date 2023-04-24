@@ -1,7 +1,7 @@
 structure MethodHandle =
   struct
     datatype t =
-      GetField
+    | GetField
     | GetStatic
     | PutField
     | PutStatic
@@ -13,7 +13,7 @@ structure MethodHandle =
 
     fun value kind =
       case kind of
-        GetField => 1
+      | GetField => 1
       | GetStatic => 2
       | PutField => 3
       | PutStatic => 4

@@ -6,7 +6,7 @@ structure Verifier =
       let
         fun transition instr =
           case instr of
-            nop => []
+          | nop => []
           | aconst_null => raise Fail "not implemented: aconst_null"
           | iconst_m1 => [Push VerificationType.Integer]
           | iconst_0 => [Push VerificationType.Integer]
@@ -200,7 +200,7 @@ structure Verifier =
               val thisType = [Pop (VerificationType.Object class)]
               val returnType =
                 case VerificationType.methodReturn descriptor of
-                  VerificationType.Top => []
+                | VerificationType.Top => []
                 | verificationType => [Push verificationType]
             in
               List.concat [paramTypes, thisType, returnType]
@@ -211,7 +211,7 @@ structure Verifier =
               val paramTypes = List.revMap Pop (VerificationType.methodParams descriptor)
               val returnType =
                 case VerificationType.methodReturn descriptor of
-                  VerificationType.Top => []
+                | VerificationType.Top => []
                 | verificationType => [Push verificationType]
             in
               List.concat [paramTypes, returnType]

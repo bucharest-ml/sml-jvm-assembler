@@ -3,7 +3,7 @@ structure Class =
     structure Flag =
       struct
         datatype t =
-          PUBLIC
+        | PUBLIC
         | FINAL
         | SUPER
         | INTERFACE
@@ -14,7 +14,7 @@ structure Class =
 
         fun compile flag : Word.word =
           case flag of
-            PUBLIC     => 0wx0001
+          | PUBLIC     => 0wx0001
           | FINAL      => 0wx0010
           | SUPER      => 0wx0020
           | INTERFACE  => 0wx0200

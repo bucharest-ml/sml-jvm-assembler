@@ -6,7 +6,7 @@ structure StackMap =
        * This frame type indicates that the frame has exactly the same local
        * variables as the previous frame and that the operand stack is empty.
        *)
-      Same of { offsetDelta : int }
+    | Same of { offsetDelta : int }
 
       (*
        * This frame type indicates that the frame has exactly the same local
@@ -101,14 +101,13 @@ structure StackMap =
           in
             (bytes, constPool)
           end
-
       in
         case frame of
-          Same a => same a
+        | Same a                 => same a
         | SameLocals1StackItem a => sameLocals1StackItem a
-        | Chop a => chop a
-        | Append a => append a
-        | Full a => full a
+        | Chop a                 => chop a
+        | Append a               => append a
+        | Full a                 => full a
       end
 
     fun compileFrames constPool frames =
