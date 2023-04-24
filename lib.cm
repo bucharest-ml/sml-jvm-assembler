@@ -6,34 +6,36 @@ is
 
   $BUCHAREST-ML/sml-foundation/lib.cm
 
-  src/attr.sml
-  src/class.sml
-  src/class-name.sml
-  src/const.sml
-  src/const-pool.sig
-  src/const-pool.sml
-  src/descriptor.sml
-  src/field.sml
-  src/instr.sml
-  src/java.sml
-  src/labeled-instr.sml
-  src/main.sml
-  src/member.fun
-  src/method.sml
-  src/method-handle.sml
-  src/prim.sml
-  src/text.sig
-  src/text.sml
-  src/util.sig
-  src/util.sml
+  src (
+    attr.sml
+    class.sml
+    class-name.sml
+    const.sml
+    const-pool.sig
+    const-pool.sml
+    descriptor.sml
+    field.sml
+    instr.sml
+    java.sml
+    labeled-instr.sml
+    main.sml
+    member.fun
+    method.sml
+    method-handle.sml
+    prim.sml
+    text.sig
+    text.sml
+    util.sig
+    util.sml
 
-  src/extensions/list.sig
-  src/extensions/list.sml
-  src/extensions/word8-vector.sml
+    extensions/list.sig
+    extensions/list.sml
+    extensions/word8-vector.sml
 
-  src/stack-map/frame.sml
-  src/stack-map/stack-lang.sml
-  src/stack-map/stack-map.sml
-  src/stack-map/verification-type.sml
-  src/stack-map/verifier.sig
-  src/stack-map/verifier.sml
+    stack-map/frame.sml
+    stack-map/stack-lang.sml
+    stack-map/stack-map.sml
+    stack-map/verification-type.sml
+    stack-map/verifier.sig
+    stack-map/verifier.sml
+  )
