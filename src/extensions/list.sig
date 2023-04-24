@@ -24,20 +24,14 @@ signature LIST =
         (**
          * Operator for composing fold functions.
          *)
-        structure & :
-          sig
-            val & :
-                ('a * 'state_1 -> 'state_1) * ('a * 'state_2 -> 'state_2)
-              -> 'a * ('state_1 * 'state_2)
-              -> 'state_1 * 'state_2
-          end
+        val & :
+            ('a * 'state_1 -> 'state_1) * ('a * 'state_2 -> 'state_2)
+          -> 'a * ('state_1 * 'state_2)
+          -> 'state_1 * 'state_2
 
         (**
          * Operator for composing `stepper`s.
          *)
-        structure <&> :
-          sig
-            val <&> : ('a, 'b) stepper * ('a, 'c) stepper -> ('a, 'b * 'c) stepper
-          end
+        val <&> : ('a, 'b) stepper * ('a, 'c) stepper -> ('a, 'b * 'c) stepper
       end
   end

@@ -1,8 +1,10 @@
 library (0.1.0)
+  library ($BUCHAREST-ML/sml-foundation/lib.cm)
   source (-)
 is
-  $/basis.cm
   $/smlnj-lib.cm
+
+  $BUCHAREST-ML/sml-foundation/lib.cm
 
   src/attr.sml
   src/class.sml
@@ -25,8 +27,6 @@ is
   src/util.sig
   src/util.sml
 
-  src/extensions/fn.sig
-  src/extensions/fn.sml
   src/extensions/list.sig
   src/extensions/list.sml
   src/extensions/word8-vector.sml

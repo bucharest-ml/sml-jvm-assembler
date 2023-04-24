@@ -24,20 +24,15 @@ structure List : LIST =
 
     structure Op =
       struct
-        structure & =
-          struct
-            fun & (f, g) =
-              fn (elem, (a, b)) => (f (elem, a), g (elem, b))
-          end
+        infixr &
 
-        structure <&> =
-          struct
-            open & infixr &
+        (* https://smlnj-gforge.cs.uchicago.edu/tracker/?group_id=33&atid=215&func=detail&aid=129 *)
+        fun f & g =
+          fn (elem, (a, b)) => (f (elem, a), g (elem, b))
 
-            fun <&> (f : ('a, 's) stepper, g : ('a, 't) stepper) = {
-              seed = (#seed f, #seed g),
-              step = #step f & #step g
-            }
-          end
+        fun <&> (f : ('a, 's) stepper, g : ('a, 't) stepper) = {
+          seed = (#seed f, #seed g),
+          step = #step f & #step g
+        }
       end
   end

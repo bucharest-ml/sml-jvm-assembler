@@ -72,7 +72,7 @@ structure Attr =
 
         fun compileAttributes constPool stackMapTable attributes =
           let
-            open List.Op.<&> infixr <&>
+            open List.Op infixr <&>
 
             val detectStackMapTable = {
               seed = false,
