@@ -5,6 +5,11 @@ structure StackMap =
       (*
        * This frame type indicates that the frame has exactly the same local
        * variables as the previous frame and that the operand stack is empty.
+       *
+       * This entry also handles the `same_frame_extended` case. The distiction
+       * is based on the `offsetDelta` value. If it's small enough to be
+       * represented using a `same_frame`, it will use that. Conversely, it
+       * will use a `same_frame_extended` with an explicit `offset_delta`.
        *)
     | Same of { offsetDelta : int }
 
@@ -12,6 +17,11 @@ structure StackMap =
        * This frame type indicates that the frame has exactly the same local
        * variables as the previous frame and that the operand stack has one
        * entry.
+       *
+       * This entry also handles the `same_locals_1_stack_item_frame_extended`
+       * case. Similarly to `same_frame`, the distiction is made based on the
+       * value of the `offsetDelta` field — if it's too large, then we use the
+       * extended case.
        *)
     | SameLocals1StackItem of {
         offsetDelta : int,
