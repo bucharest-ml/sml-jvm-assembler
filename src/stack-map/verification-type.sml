@@ -40,7 +40,9 @@ structure VerificationType =
       | (a, b) =>
           if a = b
           then a
-          else raise Fail "not implemented: leastUpperBound" (* TODO *)
+          else
+            (* TODO *)
+            raise Fail ("not implemented: leastUpperBound: " ^ toString a ^ " =/= " ^ toString b)
 
     fun isTop Top = true
       | isTop _ = false
