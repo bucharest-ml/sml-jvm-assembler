@@ -10,3 +10,7 @@ is
     all-suites.sml
     frame-suite.sml
   )
+
+  test/test-cases (
+    factorial/factorial.sml
+  )
