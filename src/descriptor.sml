@@ -4,12 +4,12 @@
 structure Descriptor =
   struct
     datatype t =
-      Raw of Text.t
+    | Raw of Text.t
     | Field of simple
     | Method of { params : simple list, return : return }
 
     and simple =
-      Bool
+    | Bool
     | Byte
     | Char
     | Double
@@ -21,14 +21,14 @@ structure Descriptor =
     | Array of simple
 
     and return =
-      Void
+    | Void
     | Type of simple
 
     fun fromString s = Raw s
 
     fun paramsCount descriptor =
       case descriptor of
-        Raw d => 1 (* TODO *)
+      | Raw d => 1 (* TODO *)
       | Field _ => raise Fail "paramsCount called on field descriptor"
       | Method { params, ... } =>
         let
@@ -43,7 +43,7 @@ structure Descriptor =
 
     fun returnCount descriptor =
       case descriptor of
-        Method { params, return = Void } => 0
+      | Method { params, return = Void } => 0
       | Method _ => 1
       | Field _ => raise Fail "returnCount called on field descriptor"
       | Raw d => 0 (* TODO *)
@@ -52,7 +52,7 @@ structure Descriptor =
       let
         fun simple f =
           case f of
-            Byte => "B"
+          | Byte => "B"
           | Char => "C"
           | Double => "D"
           | Float => "F"
@@ -64,11 +64,11 @@ structure Descriptor =
           | Array elemType => "[" ^ simple elemType
         fun return r =
           case r of
-            Void => "V"
+          | Void => "V"
           | Type t => simple t
       in
         case descriptor of
-          Raw d => d
+        | Raw d => d
         | Field f => simple f
         | Method { params, return = r } =>
             "(" ^ String.concat (List.map simple params) ^ ")" ^ return r

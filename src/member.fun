@@ -34,7 +34,7 @@ functor Member(Flag : sig type t val compile : t -> Word.word end) =
         val (attrBytes, constPool) = List.foldl compileAttrs seed attributes
         val (nameIndex, constPool) = ConstPool.withUtf8 constPool name
         val (descIndex, constPool) = ConstPool.withUtf8 constPool (Descriptor.compile descriptor)
-        val methodBytes = Word8Vector.concat [
+        val memberBytes = Word8Vector.concat [
           u2 (Word.toInt (mask accessFlags)),
           u2 nameIndex,
           u2 descIndex,
@@ -42,6 +42,6 @@ functor Member(Flag : sig type t val compile : t -> Word.word end) =
           attrBytes
         ]
       in
-        (methodBytes, constPool)
+        (memberBytes, constPool)
       end
   end

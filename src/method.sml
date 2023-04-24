@@ -3,7 +3,7 @@ structure Method =
     structure Flag =
       struct
         datatype t =
-          PUBLIC
+        | PUBLIC
         | PRIVATE
         | PROTECTED
         | STATIC
@@ -18,7 +18,7 @@ structure Method =
 
         fun compile flag : Word.word =
           case flag of
-            PUBLIC       => 0wx0001
+          | PUBLIC       => 0wx0001
           | PRIVATE      => 0wx0002
           | PROTECTED    => 0wx0004
           | STATIC       => 0wx0008

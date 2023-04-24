@@ -6,7 +6,7 @@ structure ExceptionInfo =
 structure ConstantValue =
   struct
     datatype t =
-      Integer of Integer.t
+    | Integer of Integer.t
     | Long of Long.t
     | Float of Float.t
     | Double of Double.t
@@ -19,14 +19,14 @@ structure Attr =
     open Util
 
     datatype t =
-      Custom
+    | Custom
     | ConstantValue of ConstantValue.t
     | Code of {
         code : LabeledInstr.t list,
         exceptionTable : ExceptionInfo.t list,
         attributes : t list
       }
-    | StackMapTable
+    | StackMapTable of StackMap.frame list
     | Exceptions of ClassName.t list
     | BootstrapMethods of ConstPool.bootstrap_method list
     | InnerClasses
@@ -48,9 +48,12 @@ structure Attr =
     | LocalVariableTypeTable
     | Deprecated
 
+    fun isStackMapTable attr =
+      case attr of StackMapTable _ => true | _ => false
+
     fun compile constPool attr =
       case attr of
-        Code code => compileCode constPool code
+      | Code code => compileCode constPool code
       | ConstantValue value => compileConstantValue constPool value
       | Exceptions exceptions => compileExceptions constPool exceptions
       | Synthetic => compileSynthetic constPool
@@ -58,6 +61,7 @@ structure Attr =
       | Signature typeSignature => compileSignature constPool typeSignature
       | SourceFile value => compileSourceFile constPool value
       | BootstrapMethods methods => compileBootstrapMethods constPool methods
+      | StackMapTable frames => compileStackMapTable constPool frames
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
@@ -66,13 +70,48 @@ structure Attr =
         fun compileExceptions constPool exceptionTable =
           (u2 0, constPool) (* TODO: add exceptions *)
 
-        fun compileAttributes constPool attributes =
-          (u2 0, constPool) (* TODO: add attributes *)
+        fun compileAttributes constPool stackMapTable attributes =
+          let
+            open List.Op infixr <&>
+
+            val detectStackMapTable = {
+              seed = false,
+              step = fn (attr, seen) => seen orelse isStackMapTable attr
+            }
+
+            val compileAttr = {
+              seed = { bytes = vec [], length = 0, constPool = constPool },
+              step = fn (attr, { bytes, length, constPool }) =>
+                let
+                  val (attrBytes, constPool) = compile constPool attr
+                in
+                  {
+                    bytes = Word8Vector.concat [bytes, attrBytes],
+                    length = length + 1,
+                    constPool = constPool
+                  }
+                end
+            }
+
+            val (seenStackMapTable, { bytes, length, constPool }) =
+              List.stepl (detectStackMapTable <&> compileAttr) attributes
+          in
+            if seenStackMapTable
+            then (Word8Vector.concat [u2 length, bytes], constPool)
+            else
+              let
+                val (attrBytes, constPool) = compile constPool stackMapTable
+                val bytes = Word8Vector.concat [bytes, attrBytes]
+              in
+                (Word8Vector.concat [u2 (length + 1), bytes], constPool)
+              end
+          end
 
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "Code"
-        val (instrBytes, constPool) = compileInstructions constPool code
+        (* TODO: generate and add StackMapTable only if version >= 50 *)
+        val (instrBytes, constPool, stackMapAttr) = compileInstructions constPool code
         val (exceptionBytes, constPool) = compileExceptions constPool exceptionTable
-        val (attributeBytes, constPool) = compileAttributes constPool attributes
+        val (attributeBytes, constPool) = compileAttributes constPool stackMapAttr attributes
         val attributeLength =
           Word8Vector.length instrBytes +
           Word8Vector.length exceptionBytes +
@@ -91,7 +130,10 @@ structure Attr =
     and compileInstructions constPool code =
       let
         val result = LabeledInstr.compileList constPool code
-
+        val stackMapFrames =
+          StackLang.compileCompact
+            (StackLang.interpret (Verifier.verify (#offsetedInstrs result)))
+        val stackMapAttr = StackMapTable stackMapFrames
         val bytes = Word8Vector.concat [
           u2 (#maxStack result),
           u2 (#maxLocals result),
@@ -99,7 +141,7 @@ structure Attr =
           (#bytes result)
         ]
       in
-        (bytes, (#constPool result))
+        (bytes, #constPool result, stackMapAttr)
       end
 
     and compileConstantValue constPool value =
@@ -107,7 +149,7 @@ structure Attr =
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "ConstantValue"
         val (constValueIndex, constPool) =
           case value of
-            ConstantValue.Integer value => raise Fail "not implemented"
+          | ConstantValue.Integer value => raise Fail "not implemented"
           | ConstantValue.Long value => raise Fail "not implemented"
           | ConstantValue.Float value => raise Fail "not implemented"
           | ConstantValue.Double value => raise Fail "not implemented"
@@ -216,9 +258,24 @@ structure Attr =
         (bytes, constPool)
       end
 
+    and compileStackMapTable constPool frames =
+      let
+        val (stackMapBytes, constPool) = StackMap.compileFrames constPool frames
+        val (attrIndex, constPool) = ConstPool.withUtf8 constPool "StackMapTable"
+        val attributeLength = 2 + Word8Vector.length stackMapBytes
+        val bytes = Word8Vector.concat [
+          u2 attrIndex,
+          u4 attributeLength,
+          u2 (List.length frames),
+          stackMapBytes
+        ]
+      in
+        (bytes, constPool)
+      end
+
     fun minimumVersion attr =
       case attr of
-        Custom                               => { major = 45, minor = 3 }
+      | Custom                               => { major = 45, minor = 3 }
       | SourceFile _                         => { major = 45, minor = 3 }
       | InnerClasses                         => { major = 45, minor = 3 }
       | ConstantValue _                      => { major = 45, minor = 3 }
@@ -237,7 +294,7 @@ structure Attr =
       | RuntimeVisibleAnnotations            => { major = 49, minor = 0 }
       | RuntimeInvisibleAnnotations          => { major = 49, minor = 0 }
       | LocalVariableTypeTable               => { major = 49, minor = 0 }
-      | StackMapTable                        => { major = 50, minor = 0 }
+      | StackMapTable _                      => { major = 50, minor = 0 }
       | BootstrapMethods _                   => { major = 51, minor = 0 }
       | MethodParameters                     => { major = 52, minor = 0 }
       | RuntimeVisibleTypeAnnotations        => { major = 52, minor = 0 }

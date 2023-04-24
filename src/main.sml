@@ -154,17 +154,118 @@ structure Main =
           code = let open Instr in [
             aload_0,
             arraylength,
-            iconst_1,
+            iconst_0,
             if_icmpne "else",
-            getstatic (symbol "java/lang/System" "out" "Ljava/io/PrintStream;"),
+            getstatic java.lang.System.out,
             ldc (Const.String "T"),
-            invokevirtual (symbol "java/io/PrintStream" "println" "(Ljava/lang/String;)V"),
+            invokevirtual java.io.PrintStream.println,
             goto "return",
             label "else",
-            getstatic (symbol "java/lang/System" "out" "Ljava/io/PrintStream;"),
+            getstatic java.lang.System.out,
             ldc (Const.String "F"),
-            invokevirtual (symbol "java/io/PrintStream" "println" "(Ljava/lang/String;)V"),
+            invokevirtual java.io.PrintStream.println,
             label "return",
+            return
+          ] end
+        }
+      ]
+    }
+
+    val factorial = Method.from {
+      name = "main",
+      accessFlags = [Method.Flag.PUBLIC, Method.Flag.STATIC],
+      descriptor = Descriptor.Method {
+        return = Descriptor.Void,
+        params = [
+          Descriptor.Array (Descriptor.Object (ClassName.fromString "java/lang/String"))
+        ]
+      },
+      attributes = [
+        Attr.Code {
+          exceptionTable = [],
+          attributes = [],
+          code = let open Instr in [
+            iconst_5,
+            istore_1,
+            iconst_1,
+            istore_2,
+            label "enter-while",
+            iload_1,
+            ifle "exit-while",
+            iload_2,
+            iload_1,
+            imul,
+            istore_2,
+            iinc (0w1, ~ 0w1),
+            goto "enter-while",
+            label "exit-while",
+            getstatic java.lang.System.out,
+            iload_2,
+            invokestatic java.lang.Integer.toString,
+            invokevirtual java.io.PrintStream.println,
+            return
+          ] end
+        }
+      ]
+    }
+
+    val nestedLoops = Method.from {
+      name = "main",
+      accessFlags = [Method.Flag.PUBLIC, Method.Flag.STATIC],
+      descriptor = Descriptor.Method {
+        return = Descriptor.Void,
+        params = [
+          Descriptor.Array (Descriptor.Object (ClassName.fromString "java/lang/String"))
+        ]
+      },
+      attributes = [
+        Attr.Code {
+          exceptionTable = [],
+          attributes = [
+            (* Attr.StackMapTable [
+              StackMap.Append {
+                offsetDelta = 2,
+                extraLocals = 1,
+                locals = [VerificationType.Integer]
+              },
+              StackMap.Append {
+                offsetDelta = 7,
+                extraLocals = 1,
+                locals = [VerificationType.Integer]
+              },
+              StackMap.Same { offsetDelta = 23 },
+              StackMap.Chop { minusLocals = 1, offsetDelta = 9 }
+            ] *)
+          ],
+          code = let open Instr in [
+            iconst_0,
+            istore_1,
+          label "goto-2",
+            iload_1,
+            bipush 0w10,
+            if_icmpge "exit",
+            iconst_0,
+            istore_2,
+          label "goto-1",
+            iload_2,
+            bipush 0w10,
+            if_icmpge "iinc",
+            getstatic java.lang.System.out,
+            iload_1,
+            iload_2,
+            iadd,
+            invokestatic java.lang.Integer.toString,
+            invokevirtual java.io.PrintStream.println,
+            iinc (0w2, 0w1),
+            goto "goto-1",
+          label "iinc",
+            iinc (0w1, 0w1),
+            iload_2,
+            iconst_3,
+            iadd,
+            pop,
+            goto "goto-2",
+          label "exit",
             return
           ] end
         }
@@ -188,7 +289,7 @@ structure Main =
         }
       ],
       (* methods = [main, printString, bootstrap] *)
-      methods = [withBranch]
+      methods = [nestedLoops]
     }
 
     val trim =
@@ -215,5 +316,19 @@ structure Main =
         val output = java workDir "Main"
       in
         print (output ^ "\n")
+      end
+
+    fun stackMap () =
+      let
+        val { attributes = [Attr.Code { code, ... }], ... } = nestedLoops
+        val { offsetedInstrs, ... } = Instr.compileList ConstPool.empty code
+      in
+        StackLang.compileCompact
+        (
+          StackLang.interpret
+          (
+            Verifier.verify offsetedInstrs
+          )
+        )
       end
   end

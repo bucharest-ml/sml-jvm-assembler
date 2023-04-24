@@ -8,7 +8,7 @@ structure LabeledInstr =
     type label = string
 
     datatype t =
-      INSTR of Instr.t
+    | INSTR of Instr.t
     | LABEL of label
     | GOTO of {
         label : label,
@@ -221,124 +221,187 @@ structure LabeledInstr =
     val impdep1         = INSTR Instr.impdep1
     val impdep2         = INSTR Instr.impdep2
 
+    fun toString instr =
+      case instr of
+      | INSTR instr => "INSTR " ^ Instr.toString instr
+      | LABEL label => "LABEL " ^ label
+      | GOTO { label, instr, ... } =>
+          "GOTO (" ^ label ^ ", " ^ Instr.toString (instr 0) ^ ")"
+
     structure LabelMap = BinaryMapFn(struct
       type ord_key = string
       val compare = String.compare
     end)
 
-    structure State =
-      struct
-        type t = {
-          constPool : ConstPool.t,
-          stackSize : int,
-          maxStack : int,
-          maxLocals : int,
-          bytes : Word8Vector.vector,
-          seenLabels : Instr.offset LabelMap.map
-        }
-      end
-
     fun compileList constPool instrs =
       let
-        fun traverse [] state = state
-          | traverse (instr :: rest) (state as { offset, constPool, stackSize, maxStack, maxLocals, bytes, seenLabels }) =
-              case instr of
-                GOTO { label, instr, byteCount } => let in
-                  case LabelMap.find (seenLabels, label) of
-                    SOME labelOffset =>
-                    let
-                      val instr = instr (labelOffset - offset)
-                      val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
-                    in
-                      traverse rest {
-                        offset = offset + Word8Vector.length opcodes,
-                        constPool = constPool,
-                        stackSize = stackSize + stackDiff,
-                        maxStack = Int.max (maxStack, stackSize + stackDiff),
-                        maxLocals = maxLocals,
-                        bytes = Word8Vector.concat [bytes, opcodes],
-                        seenLabels = seenLabels
-                      }
-                    end
-                  | NONE =>
-                    let
+        fun traverseLabel label state rest =
+          let
+            val { index, offset, constPool, stackSize, maxStack, ... } = state
+            val { maxLocals, bytes, seenLabels, offsetedInstrs, ... } = state
+          in
+            traverse rest {
+              index = index,
+              offset = offset,
+              constPool = constPool,
+              stackSize = stackSize,
+              maxStack = maxStack,
+              maxLocals = maxLocals,
+              bytes = bytes,
+              seenLabels = LabelMap.insert (seenLabels, label, (offset, index)),
+              offsetedInstrs = offsetedInstrs
+            }
+          end
+
+        and traverseInstr instr state rest =
+          let
+            val { index, offset, constPool, stackSize, maxStack, ... } = state
+            val { maxLocals, bytes, seenLabels, offsetedInstrs, ... } = state
+            val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
+            val storeIndex = Option.getOpt (Instr.storeIndex instr, 0) + 1
+          in
+            traverse rest {
+              index = index + 1,
+              offset = offset + Word8Vector.length opcodes,
+              constPool = constPool,
+              stackSize = stackSize + stackDiff,
+              maxStack = Int.max (maxStack, stackSize + stackDiff),
+              maxLocals = Int.max (maxLocals, storeIndex),
+              bytes = Word8Vector.concat [bytes, opcodes],
+              seenLabels = seenLabels,
+              offsetedInstrs = (offset, instr) :: offsetedInstrs
+            }
+          end
+
+        and traverseGoto { label, instr, byteCount } state rest =
+          let
+            val { index, offset, constPool, stackSize, maxStack, ... } = state
+            val { maxLocals, bytes, seenLabels, offsetedInstrs, ... } = state
+          in
+            case LabelMap.find (seenLabels, label) of
+            | SOME (labelOffset, labelIndex) =>
+              let
+                val offsetedInstr = instr labelIndex
+                val instr = instr (labelOffset - offset)
+                val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
+              in
+                traverse rest {
+                  index = index + 1,
+                  offset = offset + Word8Vector.length opcodes,
+                  constPool = constPool,
+                  stackSize = stackSize + stackDiff,
+                  maxStack = Int.max (maxStack, stackSize + stackDiff),
+                  maxLocals = maxLocals,
+                  bytes = Word8Vector.concat [bytes, opcodes],
+                  seenLabels = seenLabels,
+                  offsetedInstrs = (offset, offsetedInstr) :: offsetedInstrs
+                }
+              end
+            | NONE =>
+              let
+                (*
+                 * We don't have a label yet; traverse the rest of the
+                 * instruction stream and then try again, maybe a label
+                 * has been found.
+                 *)
+                val result = traverse rest {
+                  index = index + 1,
+                  offset = offset + byteCount,
+                  constPool = constPool,
+                  (*
+                   * We don't have an instruction stackDiff here, so we just
+                   * reset these counters and compensate later.
+                   *)
+                  stackSize = 0,
+                  maxStack = 0,
+                  maxLocals = maxLocals,
+                  bytes = Util.vec [],
+                  seenLabels = seenLabels,
+                  offsetedInstrs = []
+                }
+              in
+                case LabelMap.find (#seenLabels result, label) of
+                | NONE => raise Fail ("undefined label: " ^ label)
+                | SOME (labelOffset, labelIndex) =>
+                  let
+                    (*
+                     * We're doing a kind of a dirty thing here. We're misusing
+                     * the instruction's offset field by putting the *index* of
+                     * the target instruction. The index as it appears in our
+                     * instruction list, not in the final byte stream.
+                     *)
+                    val offsetedInstr = instr labelIndex
+                    val instr = instr (labelOffset - offset)
+                    val (opcodes, stackDiff, constPool) =
+                      Instr.compile (#constPool result) instr
+                  in
+                    {
                       (*
-                       * We don't have a label yet; traverse the rest of the
-                       * instruction stream and then try again, maybe a label
-                       * has been found.
+                       * These values are only read inside recursive calls, not
+                       * when the function returns, so nobody will look at them,
+                       * which means we can use default values and save some
+                       * computations.
                        *)
-                      val result = traverse rest {
-                        offset = offset + byteCount,
-                        constPool = constPool,
-                        stackSize = stackSize,
-                        maxStack = maxStack,
-                        maxLocals = maxLocals,
-                        bytes = Util.vec [],
-                        seenLabels = seenLabels
-                      }
-                    in
-                      case LabelMap.find (#seenLabels result, label) of
-                        NONE => raise Fail ("undefined label: " ^ label)
-                      | SOME labelOffset =>
-                        let
-                          val instr = instr (labelOffset - offset)
-                          val (opcodes, stackDiff, constPool) =
-                            Instr.compile (#constPool result) instr
-                        in
-                          {
-                            offset = #offset result,
-                            constPool = constPool,
-                            stackSize = stackSize + stackDiff,
-                            maxStack = Int.max (maxStack, stackSize + stackDiff),
-                            maxLocals = #maxLocals result,
-                            bytes = Word8Vector.concat [bytes, opcodes, #bytes result],
-                            seenLabels = #seenLabels result
-                          }
-                        end
-                    end
-                end
-              | LABEL label =>
-                  traverse rest {
-                    offset = offset,
-                    constPool = constPool,
-                    stackSize = stackSize,
-                    maxStack = maxStack,
-                    maxLocals = maxLocals,
-                    bytes = bytes,
-                    seenLabels = LabelMap.insert (seenLabels, label, offset)
-                  }
-              | INSTR instr =>
-                let
-                  val (opcodes, stackDiff, constPool) = Instr.compile constPool instr
-                in
-                  traverse rest {
-                    offset = offset + Word8Vector.length opcodes,
-                    constPool = constPool,
-                    stackSize = stackSize + stackDiff,
-                    maxStack = Int.max (maxStack, stackSize + stackDiff),
-                    maxLocals = maxLocals,
-                    bytes = Word8Vector.concat [bytes, opcodes],
-                    seenLabels = seenLabels
-                  }
-                end
+                      index = 0,
+                      offset = 0,
+                      stackSize = 0,
 
-        val seed = {
-          offset = 0,
-          constPool = constPool,
-          stackSize = 0,
-          maxStack = 0,
-          maxLocals = 10, (* TODO: compute maxLocals *)
-          bytes = Util.vec [],
-          seenLabels = LabelMap.empty
-        }
+                      (*
+                       * The following are values that will be read on return,
+                       * so we have to put the real values.
+                       *)
+                      constPool = constPool,
+                      seenLabels = #seenLabels result,
+                      (*
+                       * Here's where we compensate for the fact that above we
+                       * didn't know the stack diff amount of an instruction.
+                       *)
+                      maxStack = Int.max (
+                        maxStack,
+                        #maxStack result + stackSize + stackDiff
+                      ),
+                      maxLocals = #maxLocals result,
+                      bytes = Word8Vector.concat [
+                        bytes,
+                        opcodes,
+                        #bytes result
+                      ],
+                      offsetedInstrs = List.concat [
+                        #offsetedInstrs result,
+                        [(offset, offsetedInstr)],
+                        offsetedInstrs
+                      ]
+                    }
+                  end
+              end
+          end
 
-        val result = traverse instrs seed
+        and traverse instrs state =
+          case instrs of
+          | [] => state
+          | (LABEL label :: rest) => traverseLabel label state rest
+          | (INSTR instr :: rest) => traverseInstr instr state rest
+          | (GOTO goto :: rest) => traverseGoto goto state rest
+
+        val { bytes, maxStack, maxLocals, constPool, offsetedInstrs, ... } =
+          traverse instrs {
+            index = 0,
+            offset = 0,
+            constPool = constPool,
+            stackSize = 0,
+            maxStack = 0,
+            maxLocals = 0,
+            bytes = Util.vec [],
+            seenLabels = LabelMap.empty,
+            offsetedInstrs = []
+          }
       in
         {
-          bytes = #bytes result,
-          maxStack = #maxStack result,
-          maxLocals = #maxLocals result,
-          constPool = #constPool result
+          bytes = bytes,
+          maxStack = maxStack,
+          maxLocals = maxLocals,
+          constPool = constPool,
+          offsetedInstrs = List.rev offsetedInstrs
         }
       end
   end

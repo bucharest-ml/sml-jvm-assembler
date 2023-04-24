@@ -1,0 +1,41 @@
+digraph {
+  rankdir = LR
+
+  node [
+    shape    = circle
+    fontname = courier
+  ]
+
+  node [group = chop]
+  Chop1
+  Chop2
+  Chop3
+
+  node [group = same]
+  Same
+  Full
+
+  node [group = append]
+  Append1
+  Append2
+  Append3
+
+  Same -> Same [label = "α ≣ β"]
+  Same -> Full [label = "α ≢ β"]
+
+  Same -> Chop1 [label = "(α, ⊤)"]
+  Chop1 -> Chop2 [label = "(α, ⊤)"]
+  Chop2 -> Chop3 [label = "(α, ⊤)"]
+
+  Chop1 -> Full [label = "∀ α, β"]
+  Chop2 -> Full [label = "∀ α, β"]
+  Chop3 -> Full [label = "∀ α, β"]
+
+  Same -> Append1 [label = "(⊤, β)"]
+  Append1 -> Append2 [label = "(⊤, β)"]
+  Append2 -> Append3 [label = "(⊤, β)"]
+
+  Append1 -> Full [label = "∀ α, β"]
+  Append2 -> Full [label = "∀ α, β"]
+  Append3 -> Full [label = "∀ α, β"]
+}
