@@ -58,6 +58,16 @@ structure StackMap =
         stack : VerificationType.t list
       }
 
+    (* structure Frame =
+      struct
+        type t = frame
+
+        fun toString frame =
+          case frame of
+          | Same { offsetDelta } => "Same { "^ Int.toString offsetDelta ^" }"
+          |
+      end *)
+
     open Util
 
     fun compile constPool frame =

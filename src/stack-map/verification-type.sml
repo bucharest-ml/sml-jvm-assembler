@@ -4,7 +4,9 @@ structure VerificationType =
 
     (* See: JVMS18 / $4.10.1.2 / Verification Type System *)
     datatype t =
-      Top
+    | Top
+    (* | OneWord *) (* ??? *)
+    (* | TwoWord *) (* ??? *)
     | Integer
     | Float
     | Long

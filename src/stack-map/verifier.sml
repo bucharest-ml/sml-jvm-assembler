@@ -1,5 +1,5 @@
-structure Verifier =
-  struct
+structure Verifier : VERIFIER =
+  let
     open Instr StackLang
 
     fun verify instrs =
@@ -256,4 +256,8 @@ structure Verifier =
             { offset = offset, instrs = transition instr })
           instrs
       end
+  in
+    struct
+      val verify = verify
+    end
   end

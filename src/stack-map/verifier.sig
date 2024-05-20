@@ -1,4 +1,4 @@
 signature VERIFIER =
   sig
-    val verify : Instr.t list -> StackLang.t list list
+    val verify : ('offset * Instr.t) list -> { offset : 'offset, instrs : StackLang.t list } list
   end

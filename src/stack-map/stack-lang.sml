@@ -2,12 +2,17 @@ structure StackLang =
   struct
     type local_index = int
 
+    type indexed_type = {
+      index : local_index,
+      vtype : VerificationType.t
+    }
+
     datatype t =
     | Push of VerificationType.t
     | Pop of VerificationType.t
-    | Load of local_index * VerificationType.t
-    | Store of local_index * VerificationType.t
-    | Local of local_index * VerificationType.t
+    | Load of local_index * VerificationType.t (* indexed_type *)
+    | Store of local_index * VerificationType.t (* indexed_type *)
+    | Local of local_index * VerificationType.t (* indexed_type *)
     | Branch of { targetOffset : int, fallsThrough : bool }
 
     exception StackUnderflow
@@ -17,11 +22,15 @@ structure StackLang =
       case t of
       | Push vtype => "Push " ^ VerificationType.toString vtype
       | Pop vtype => "Pop " ^ VerificationType.toString vtype
-      | Load (index, vtype) => "Load ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
-      | Store (index, vtype) => "Store ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
-      | Local (index, vtype) => "Local ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Load (index, vtype) =>
+          "Load ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Store (index, vtype) =>
+          "Store ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Local (index, vtype) =>
+          "Local ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
       | Branch { targetOffset, fallsThrough } =>
-          "Branch { targetOffset = "^ Int.toString targetOffset ^", fallsThrough = "^ Bool.toString fallsThrough ^" }"
+          "Branch { targetOffset = "^ Int.toString targetOffset
+          ^", fallsThrough = "^ Bool.toString fallsThrough ^" }"
 
     fun interpret instrs =
       let

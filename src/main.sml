@@ -1,5 +1,7 @@
 structure Main =
   struct
+    open Fn.Syntax infix |>
+
     structure Instr = LabeledInstr
 
     fun symbol class name descriptor = {
@@ -272,9 +274,9 @@ structure Main =
       ]
     }
 
-    val class = Class.from {
+    fun class name = Class.from {
       accessFlags = [Class.Flag.PUBLIC],
-      thisClass = ClassName.fromString "Main",
+      thisClass = ClassName.fromString name,
       superClass = ClassName.fromString "java/lang/Object",
       interfaces = [],
       attributes = [Attr.SourceFile "main.sml"],
@@ -297,9 +299,9 @@ structure Main =
         string o dropl isSpace o dropr isSpace o full
       end
 
-    fun java classPath className =
+    fun java { classpath } className =
       let
-        val proc = Unix.execute ("/usr/bin/java", ["-cp", classPath, className])
+        val proc = Unix.execute ("/usr/bin/java", ["-cp", classpath, className])
         val output = TextIO.inputAll (Unix.textInstreamOf proc)
       in
         Unix.reap proc
@@ -308,27 +310,29 @@ structure Main =
 
     fun main () =
       let
+        val className = "Main"
         val workDir = OS.FileSys.getDir ()
-        val bytes = Class.compile class
-        val f = BinIO.openOut (OS.Path.joinDirFile { dir = workDir, file = "Main.class" })
-        val _ = BinIO.output (f, bytes)
-        val _ = BinIO.closeOut f
-        val output = java workDir "Main"
+        val binDir = OS.Path.joinDirFile { dir = workDir, file = "bin" }
+        val fileName = OS.Path.joinDirFile { dir = binDir, file = className ^ ".class" }
+        val classFile = BinIO.openOut fileName
+        val bytes = Class.compile (class className)
+        val _ = BinIO.output (classFile, bytes)
+        val _ = BinIO.closeOut classFile
+        val output = java { classpath = binDir } className
       in
         print (output ^ "\n")
       end
 
     fun stackMap () =
-      let
-        val { attributes = [Attr.Code { code, ... }], ... } = nestedLoops
-        val { offsetedInstrs, ... } = Instr.compileList ConstPool.empty code
-      in
-        StackLang.compileCompact
-        (
-          StackLang.interpret
-          (
-            Verifier.verify offsetedInstrs
-          )
-        )
-      end
+      case nestedLoops of
+      | { attributes = [Attr.Code { code, ... }], ... } =>
+        let
+          val { offsetedInstrs, ... } = Instr.compileList ConstPool.empty code
+        in
+          offsetedInstrs
+            |> Verifier.verify
+            |> StackLang.interpret
+            |> StackLang.compileCompact
+        end
+      | _ => raise Fail "not implemented"
   end
