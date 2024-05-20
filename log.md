@@ -1,5 +1,24 @@
 # Work Log
 
+## 2024-05-20 11:19:12
+
+https://github.com/GaloisInc/jvm-verifier
+
+Continue here:
+
+```
+- CM.make "dev.cm"; Factorial.main ();
+[scanning dev.cm]
+[scanning $BUCHAREST-ML/sml-test/lib.cm]
+[scanning $BUCHAREST-ML/sml-foundation/lib.cm]
+[scanning (dev.cm):lib.cm]
+[New bindings added.]
+val it = true : bool
+
+uncaught exception Fail [Fail: not implemented: leastUpperBound: Reference =/= Integer]
+  raised at: src/stack-map/verification-type.sml:47.19-47.98
+```
+
 ## 2023-04-24 09:56:20
 
 > Each stack map frame described in the entries table relies on the previous
