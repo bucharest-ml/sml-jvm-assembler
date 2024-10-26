@@ -2,6 +2,19 @@ structure Verifier : VERIFIER =
   let
     open Instr StackLang
 
+    (**
+     * TODO: this function needs to receive the containing methods signature,
+     * so that we can verify params and return instructions.
+     *
+     * For example, `areturn` must verify that the stack contains a reference
+     * which is a subtype of the declared return type.
+     *
+     * > An areturn instruction is type safe iff the enclosing method has a
+     * > declared return type, ReturnType, that is a reference type, and one
+     * > can validly pop a type matching ReturnType off the incoming operand
+     * > stack.
+     * — JVMS23, p238
+     *)
     fun verify instrs =
       let
         fun transition instr =
@@ -231,29 +244,32 @@ structure Verifier : VERIFIER =
           | monitorenter => raise Fail "not implemented: monitorenter"
           | monitorexit => raise Fail "not implemented: monitorexit"
           | goto offset => [Branch { targetOffset = offset, fallsThrough = false }]
-          | jsr offset => raise Fail "not implemented: jsr"
-          | ret index => raise Fail "not implemented: ret"
           | tableswitch => raise Fail "not implemented: tableswitch"
           | lookupswitch => raise Fail "not implemented: lookupswitch"
-          | ireturn => [Push VerificationType.Integer]
-          | lreturn => raise Fail "not implemented: lreturn"
-          | freturn => raise Fail "not implemented: freturn"
-          | dreturn => raise Fail "not implemented: dreturn"
-          | areturn => raise Fail "not implemented: areturn"
-          | return => [Push VerificationType.Top]
+          | ireturn => [Pop VerificationType.Integer]
+          | lreturn => [Pop VerificationType.Long]
+          | freturn => [Pop VerificationType.Float]
+          | dreturn => [Pop VerificationType.Double]
+          | areturn => raise Fail "not implemented"
+          | return => []
           | wide => raise Fail "not implemented: wide"
           | multianewarray _ => raise Fail "not implemented: multianewarray"
           | ifnull offset => raise Fail "not implemented: ifnull"
           | ifnonnull offset => raise Fail "not implemented: ifnonnull"
           | goto_w offset => raise Fail "not implemented: goto_w"
-          | jsr_w offset => raise Fail "not implemented: jsr_w"
           | breakpoint => raise Fail "not implemented: breakpoint"
           | impdep1 => raise Fail "not implemented: impdep1"
           | impdep2 => raise Fail "not implemented: impdep2"
+          | ret index => raise Fail "not implemented: ret; disallowed after 50"
+          | jsr offset => raise Fail "not implemented: jsr; disallowed after 50"
+          | jsr_w offset => raise Fail "not implemented: jsr; disallowed after 50"
       in
-        List.map
+        Console.println ("VERIFY........");
+        List.mapPartial
           (fn (offset, instr) =>
-            { offset = offset, instrs = transition instr })
+            case transition instr of
+            | [] => NONE
+            | xs => SOME ({ offset = offset, instrs = xs }))
           instrs
       end
   in

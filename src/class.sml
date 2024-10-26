@@ -82,7 +82,7 @@ structure Class =
           if List.null bootstrapMethods
           then attributes
           else Attr.BootstrapMethods bootstrapMethods :: attributes
-        val (attrsBytes, constPool) = compileMany Attr.compile constPool attributes
+        val (attrsBytes, constPool) = compileMany (fn cp => fn attr => Attr.compile cp attr NONE) constPool attributes
         val constPoolBytes = ConstPool.compile constPool
       in
         Word8Vector.concat [

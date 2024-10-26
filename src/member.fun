@@ -25,7 +25,7 @@ functor Member(Flag : sig type t val compile : t -> Word.word end) =
 
         fun compileAttrs (attr, (bytes, constPool)) =
           let
-            val (attrBytes, constPool) = Attr.compile constPool attr
+            val (attrBytes, constPool) = Attr.compile constPool attr (SOME { name, descriptor })
           in
             (Word8Vector.concat [bytes, attrBytes], constPool)
           end

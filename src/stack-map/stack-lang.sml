@@ -22,12 +22,9 @@ structure StackLang =
       case t of
       | Push vtype => "Push " ^ VerificationType.toString vtype
       | Pop vtype => "Pop " ^ VerificationType.toString vtype
-      | Load (index, vtype) =>
-          "Load ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
-      | Store (index, vtype) =>
-          "Store ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
-      | Local (index, vtype) =>
-          "Local ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Load (index, vtype) => "Load ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Store (index, vtype) => "Store ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
+      | Local (index, vtype) => "Local ("^ Int.toString index ^", "^ VerificationType.toString vtype ^")"
       | Branch { targetOffset, fallsThrough } =>
           "Branch { targetOffset = "^ Int.toString targetOffset
           ^", fallsThrough = "^ Bool.toString fallsThrough ^" }"
@@ -145,12 +142,14 @@ structure StackLang =
 
             val seed = {
               stack = [],
-              locals = [VerificationType.Reference, VerificationType.Top, VerificationType.Top], (* TODO *)
+              locals = [VerificationType.Integer, VerificationType.Top, VerificationType.Top], (* TODO *)
               frameMap = IntBinaryMap.empty,
               fallsThrough = true
             }
+
+            val { frameMap, ... } = List.foldli fold seed instrss
           in
-            List.foldli fold seed instrss
+            IntBinaryMap.listItems frameMap
           end
 
         fun unwrapOffset (index, item) =
@@ -162,7 +161,7 @@ structure StackLang =
               isBranchTarget = isBranchTarget
             }
       in
-        List.mapi unwrapOffset (IntBinaryMap.listItems (#frameMap (eval instrs)))
+        List.mapi unwrapOffset (eval instrs)
       end
 
     (* TODO: update function *)

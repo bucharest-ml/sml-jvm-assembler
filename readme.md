@@ -1,5 +1,9 @@
 # JVM bytecode assembler in Standard ML
 
+## Similar Projects
+
+  - BiteScript: https://github.com/headius/bitescript
+
 ## Running Main
 
 ```

@@ -2,11 +2,37 @@ structure VerificationType =
   struct
     open Util
 
-    (* See: JVMS18 / $4.10.1.2 / Verification Type System *)
+    (**
+     * Verification Type Hierarchy
+     *
+     * See: JVMS18 / $4.10.1.2 / Verification Type System
+     *
+     * ```
+     *                                top
+     *                    ____________/\____________
+     *                   /                          \
+     *                  /                            \
+     *               oneWord                       twoWord
+     *              /   |   \                     /       \
+     *             /    |    \                   /         \
+     *           int  float  reference        long        double
+     *                        /     \
+     *                       /       \_____________
+     *                      /                      \
+     *                     /                        \
+     *              uninitialized                    +------------------+
+     *               /         \                     |  Java reference  |
+     *              /           \                    |  type hierarchy  |
+     *   uninitializedThis  uninitialized(Offset)    +------------------+
+     *                                                        |
+     *                                                        |
+     *                                                       null
+     * ```
+     *)
     datatype t =
     | Top
-    (* | OneWord *) (* ??? *)
-    (* | TwoWord *) (* ??? *)
+    (* | OneWord *) (* See diagram above *)
+    (* | TwoWord *)
     | Integer
     | Float
     | Long

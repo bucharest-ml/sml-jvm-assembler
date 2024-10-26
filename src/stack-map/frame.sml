@@ -6,17 +6,24 @@ structure Frame =
     | Chop of int
     | Append of int
 
+    fun toString diff =
+      case diff of
+      | Same => "Same"
+      | Full => "Full"
+      | Chop n => "Chop " ^ Int.toString n
+      | Append n => "Append " ^ Int.toString n
+
     fun localsDifference xs ys =
       let
         fun chop n xs ys =
           if n = 3
           then
             case (xs, ys) of
-              ([], []) => Chop n
+            | ([], []) => Chop n
             | _ => Full
           else
             case (xs, ys) of
-              ([], []) => Chop n
+            | ([], []) => Chop n
             | (_ :: xs, []) => chop (n + 1) xs []
             | (_ :: xs, VerificationType.Top :: ys) => chop (n + 1) xs ys
             | _ => Full

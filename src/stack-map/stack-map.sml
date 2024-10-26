@@ -68,6 +68,13 @@ structure StackMap =
           |
       end *)
 
+    fun toString frame =
+      case frame of
+      | Same { offsetDelta } => "Same { "^ Int.toString offsetDelta ^" }"
+      | SameLocals1StackItem { offsetDelta, stack } =>
+          "SameLocals1StackItem { "^ Int.toString offsetDelta ^ ", "^ VerificationType.toString stack ^"}"
+      | _ => raise Fail "not implemented"
+
     open Util
 
     fun compile constPool frame =

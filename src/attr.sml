@@ -51,9 +51,9 @@ structure Attr =
     fun isStackMapTable attr =
       case attr of StackMapTable _ => true | _ => false
 
-    fun compile constPool attr =
+    fun compile constPool attr nameAndType =
       case attr of
-      | Code code => compileCode constPool code
+      | Code code => compileCode constPool code nameAndType
       | ConstantValue value => compileConstantValue constPool value
       | Exceptions exceptions => compileExceptions constPool exceptions
       | Synthetic => compileSynthetic constPool
@@ -65,7 +65,7 @@ structure Attr =
       | attribute => raise Fail "not implemented"
 
     (* https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.7.3 *)
-    and compileCode constPool { code, exceptionTable, attributes } =
+    and compileCode constPool { code, exceptionTable, attributes } nameAndType =
       let
         fun compileExceptions constPool exceptionTable =
           (u2 0, constPool) (* TODO: add exceptions *)
@@ -83,7 +83,7 @@ structure Attr =
               seed = { bytes = vec [], length = 0, constPool = constPool },
               step = fn (attr, { bytes, length, constPool }) =>
                 let
-                  val (attrBytes, constPool) = compile constPool attr
+                  val (attrBytes, constPool) = compile constPool attr nameAndType
                 in
                   {
                     bytes = Word8Vector.concat [bytes, attrBytes],
@@ -100,7 +100,9 @@ structure Attr =
             then (Word8Vector.concat [u2 length, bytes], constPool)
             else
               let
-                val (attrBytes, constPool) = compile constPool stackMapTable
+                (*) Add the StackMapTable attribute if the caller hasn't
+                (*) provided one already.
+                val (attrBytes, constPool) = compile constPool stackMapTable nameAndType
                 val bytes = Word8Vector.concat [bytes, attrBytes]
               in
                 (Word8Vector.concat [u2 (length + 1), bytes], constPool)
@@ -109,7 +111,7 @@ structure Attr =
 
         val (attrNameIndex, constPool) = ConstPool.withUtf8 constPool "Code"
         (* TODO: generate and add StackMapTable only if version >= 50 *)
-        val (instrBytes, constPool, stackMapAttr) = compileInstructions constPool code
+        val (instrBytes, constPool, stackMapAttr) = compileInstructions constPool code nameAndType
         val (exceptionBytes, constPool) = compileExceptions constPool exceptionTable
         val (attributeBytes, constPool) = compileAttributes constPool stackMapAttr attributes
         val attributeLength =
@@ -127,12 +129,22 @@ structure Attr =
         (bytes, constPool)
       end
 
-    and compileInstructions constPool code =
+    and displayVerifierResult result =
+      let
+        fun displayStackLangList list =
+          String.concatWith "; " (List.map StackLang.toString list)
+      in
+        List.app (fn { instrs, offset } => Console.println (Int.toString offset ^ ": "^ displayStackLangList instrs)) result
+      end
+
+    and compileInstructions constPool code nameAndType =
       let
         val result = LabeledInstr.compileList constPool code
-        val stackMapFrames =
-          StackLang.compileCompact
-            (StackLang.interpret (Verifier.verify (#offsetedInstrs result)))
+        val stackLang = Verifier.verify (#offsetedInstrs result)
+        val () = Console.println "---------------------------------------------"
+        val () = displayVerifierResult stackLang
+        val stackMapFrames = StackLang.compileCompact (StackLang.interpret stackLang)
+        (* val () = List.app (Console.println o StackMap.toString) stackMapFrames *)
         val stackMapAttr = StackMapTable stackMapFrames
         val bytes = Word8Vector.concat [
           u2 (#maxStack result),
