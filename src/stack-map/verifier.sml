@@ -260,9 +260,10 @@ structure Verifier : VERIFIER =
           | breakpoint => raise Fail "not implemented: breakpoint"
           | impdep1 => raise Fail "not implemented: impdep1"
           | impdep2 => raise Fail "not implemented: impdep2"
-          | ret index => raise Fail "not implemented: ret; disallowed after 50"
-          | jsr offset => raise Fail "not implemented: jsr; disallowed after 50"
-          | jsr_w offset => raise Fail "not implemented: jsr; disallowed after 50"
+
+          | ret index => raise Fail "Illegal instruction: ret is disallowed. See §4.9.1."
+          | jsr offset => raise Fail "Illegal instruction: jsr is disallowed. See §4.9.1."
+          | jsr_w offset => raise Fail "Illegal instruction: jsr_w is disallowed. See §4.9.1."
       in
         Console.println ("VERIFY........");
         List.mapPartial
