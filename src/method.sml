@@ -33,4 +33,7 @@ structure Method =
       end
 
     structure M = Member(Flag) open M
+
+    fun code ({ attributes = [Attr.Code { code, ... }], ... } : t) = code
+      | code _ = raise Fail "bug: method without code attribute (abstract method?)"
   end

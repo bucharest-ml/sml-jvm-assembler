@@ -324,15 +324,12 @@ structure Main =
       end
 
     fun stackMap () =
-      case nestedLoops of
-      | { attributes = [Attr.Code { code, ... }], ... } =>
-        let
-          val { offsetedInstrs, ... } = Instr.compileList ConstPool.empty code
-        in
-          offsetedInstrs
-            |> Verifier.verify
-            |> StackLang.interpret
-            |> StackLang.compileCompact
-        end
-      | _ => raise Fail "not implemented"
+      let
+        val { offsetedInstrs, maxLocals, ... } = Instr.compileList ConstPool.empty (Method.code nestedLoops)
+      in
+        offsetedInstrs
+          |> Verifier.verify
+          |> (fn instrs => StackLang.interpret instrs (Method.nameAndType nestedLoops) maxLocals)
+          |> StackLang.compileCompact
+      end
   end

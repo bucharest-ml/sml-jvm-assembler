@@ -24,7 +24,7 @@ structure Descriptor =
     | Void
     | Type of simple
 
-    fun fromString s = Raw s
+    fun fromString s = Raw s (* ← parse descriptor *)
 
     fun paramsCount descriptor =
       case descriptor of

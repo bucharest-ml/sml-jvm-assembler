@@ -29,7 +29,7 @@ structure StackLang =
           "Branch { targetOffset = "^ Int.toString targetOffset
           ^", fallsThrough = "^ Bool.toString fallsThrough ^" }"
 
-    fun interpret instrs =
+    fun interpret instrs { name, descriptor } maxLocals =
       let
         fun mergeFrames prev curr =
           let
@@ -140,9 +140,18 @@ structure StackLang =
                 }
               end
 
+            val locals =
+              let
+                val args = VerificationType.methodParams descriptor
+                val nonArgCount = maxLocals - List.length args
+                val locals = List.tabulate (nonArgCount, fn _ => VerificationType.Top)
+              in
+                args @ locals
+              end
+
             val seed = {
               stack = [],
-              locals = [VerificationType.Integer, VerificationType.Top, VerificationType.Top], (* TODO *)
+              locals = locals,
               frameMap = IntBinaryMap.empty,
               fallsThrough = true
             }
@@ -161,6 +170,7 @@ structure StackLang =
               isBranchTarget = isBranchTarget
             }
       in
+        Console.println ("StackLang: interpreting method: " ^ name ^ ":" ^ Descriptor.compile descriptor);
         List.mapi unwrapOffset (eval instrs)
       end
 

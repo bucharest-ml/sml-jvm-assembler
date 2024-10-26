@@ -140,15 +140,16 @@ structure Attr =
     and compileInstructions constPool code nameAndType =
       let
         val result = LabeledInstr.compileList constPool code
+        val maxLocals = #maxLocals result
         val stackLang = Verifier.verify (#offsetedInstrs result)
         val () = Console.println "---------------------------------------------"
         val () = displayVerifierResult stackLang
-        val stackMapFrames = StackLang.compileCompact (StackLang.interpret stackLang)
+        val stackMapFrames = StackLang.compileCompact (StackLang.interpret stackLang (Option.valOf nameAndType) maxLocals)
         (* val () = List.app (Console.println o StackMap.toString) stackMapFrames *)
         val stackMapAttr = StackMapTable stackMapFrames
         val bytes = Word8Vector.concat [
           u2 (#maxStack result),
-          u2 (#maxLocals result),
+          u2 maxLocals,
           u4 (Word8Vector.length (#bytes result)),
           (#bytes result)
         ]
