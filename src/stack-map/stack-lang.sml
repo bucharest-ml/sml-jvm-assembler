@@ -90,7 +90,11 @@ structure StackLang =
                   val frame = { stack = stack, locals = locals }
                   val mergedFrame =
                     case IntBinaryMap.find (frameMap, targetOffset) of
-                      NONE => { offset = NONE, frame = frame, isBranchTarget = true }
+                      NONE => {
+                        offset = NONE, (* TODO: use ~1 (negative 1) *)
+                        frame = frame,
+                        isBranchTarget = true
+                      }
                     | SOME { offset, frame = prevFrame, isBranchTarget } => {
                         offset = offset,
                         frame = mergeFrames prevFrame frame,
