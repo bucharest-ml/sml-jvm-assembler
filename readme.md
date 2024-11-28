@@ -1,5 +1,11 @@
 # JVM bytecode assembler in Standard ML
 
+## Similar Projects
+
+  - BiteScript: https://github.com/headius/bitescript
+
+## Running Main
+
 ```
 $ sml
 Standard ML of New Jersey v110.80 [built: Sun Aug 28 21:15:09 2016]
@@ -33,6 +39,22 @@ Standard ML of New Jersey v110.80 [built: Sun Aug 28 21:15:09 2016]
 [New bindings added.]
 val it = true : bool
 Hello, World!
+val it = () : unit
+-
+```
+
+## Running Tests
+
+```
+- CM.make "dev.cm"; AllSuites.run ();
+[scanning dev.cm]
+[scanning $BUCHAREST-ML/sml-test/lib.cm]
+[scanning $BUCHAREST-ML/sml-foundation/lib.cm]
+[scanning (dev.cm):lib.cm]
+[New bindings added.]
+val it = true : bool
+[+] 1 < 2
+[-] 1 = 1 — NotEqual
 val it = () : unit
 -
 ```

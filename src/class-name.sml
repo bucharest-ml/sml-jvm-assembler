@@ -4,6 +4,6 @@
 structure ClassName =
   struct
     type t = Text.t
-    fun fromParts parts = Text.concatWith "/" parts
+    fun fromParts parts = String.concatWith "/" parts
     fun fromString s = s
   end

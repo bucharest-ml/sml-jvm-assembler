@@ -28,7 +28,7 @@ structure ConstPool :> CONST_POOL =
     end)
 
     datatype entry =
-      Class              of entry_index
+    | Class              of entry_index
     | String             of entry_index
     | Utf8               of Text.t
     | Long               of Long.t
@@ -48,7 +48,7 @@ structure ConstPool :> CONST_POOL =
 
       fun ordinal entry =
         case entry of
-          Class _ => 0
+        | Class _ => 0
         | String _ => 1
         | Utf8 _ => 2
         | Long _ => 3
@@ -65,12 +65,12 @@ structure ConstPool :> CONST_POOL =
 
       fun tupleCompare ((a, x), (b, y)) =
         case Int.compare (a, b) of
-          EQUAL => Int.compare (x, y)
+        | EQUAL => Int.compare (x, y)
         | other => other
 
       fun compare operands =
         case operands of
-          (Class a, Class b) => Int.compare (a, b)
+        | (Class a, Class b) => Int.compare (a, b)
         | (String a, String b) => Int.compare (a, b)
         | (Utf8 a, Utf8 b) => Text.compare (a, b)
         | (Long a, Long b) => Long.compare (a, b)
@@ -109,7 +109,7 @@ structure ConstPool :> CONST_POOL =
 
     fun withEntry (constPool as { counter, entries, bootstrap }) entry =
       case Map.find (entries, entry) of
-        SOME entryIndex => (entryIndex, constPool)
+      | SOME entryIndex => (entryIndex, constPool)
       | NONE =>
           let
             val counter = counter + 1
@@ -174,7 +174,7 @@ structure ConstPool :> CONST_POOL =
         open MethodHandle
         val makeSymbolRef =
           case kind of
-            GetField => withSymbolRef Fieldref
+          | GetField => withSymbolRef Fieldref
           | GetStatic => withSymbolRef Fieldref
           | PutField => withSymbolRef Fieldref
           | PutStatic => withSymbolRef Fieldref
@@ -204,7 +204,7 @@ structure ConstPool :> CONST_POOL =
               let
                 val (index, constPool) =
                   case methodParam of
-                    Const.Integer a      => withInteger constPool a
+                  | Const.Integer a      => withInteger constPool a
                   | Const.Float a        => withFloat constPool a
                   | Const.String a       => withString constPool a
                   | Const.Class a        => withClass constPool a
@@ -226,7 +226,7 @@ structure ConstPool :> CONST_POOL =
             val entry = { methodRef = methodHandleIndex, arguments = arguments }
           in
             case BootstrapMethodsMap.find (bootEntries, entry) of
-              SOME entryIndex => (entryIndex, constPool)
+            | SOME entryIndex => (entryIndex, constPool)
             | NONE =>
               let
                 val newEntries = BootstrapMethodsMap.insert (bootEntries, entry, bootCounter)
@@ -268,7 +268,7 @@ structure ConstPool :> CONST_POOL =
           let
             val entryBytes =
               case entry of
-                Class entryIndex => Word8Vector.concat [vec [0wx7], u2 entryIndex]
+              | Class entryIndex => Word8Vector.concat [vec [0wx7], u2 entryIndex]
               | String entryIndex => Word8Vector.concat [vec [0wx8], u2 entryIndex]
               | Utf8 value =>
                 let

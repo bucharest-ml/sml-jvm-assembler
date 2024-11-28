@@ -1,7 +1,7 @@
 structure Const =
   struct
     datatype t =
-      Integer of Integer.t
+    | Integer of Integer.t
     | Float of Float.t
     | Long of Long.t
     | Double of Double.t
